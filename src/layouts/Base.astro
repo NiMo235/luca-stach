@@ -34,8 +34,10 @@ const ogImage = new URL(`${base}og.png`, Astro.site);
     </script>
   </head>
   <body class="bg-grid min-h-screen antialiased">
+    <canvas id="bg-shader" aria-hidden="true"></canvas>
     <div id="cursor-ring" aria-hidden="true"></div>
     <div id="cursor-dot" aria-hidden="true"></div>
+    <canvas id="cursor-trail" aria-hidden="true"></canvas>
     <slot />
   </body>
 </html>

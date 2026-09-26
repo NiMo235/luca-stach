@@ -41,6 +41,22 @@
       { "value": 1.4, "unit": "", "decimals": 1, "label": "Note der Bachelorarbeit", "detail": "Abschlussnote 2.1 — DHBW Lörrach, BWL Spedition & Logistik" }
     ]
   },
+  "ticker": {
+    "items": [
+      "LLM-PIPELINES",
+      "PROZESSANALYSE",
+      "SPOTMARKT-ANGEBOTE",
+      "CHEMIELOGISTIK",
+      "FRACHTRECHNUNGS-PRÜFUNG",
+      "SENDUNGSVERFOLGUNG",
+      "MYBRIEM",
+      "HUMAN-IN-THE-LOOP",
+      "ROI NACHWEISBAR",
+      "BUSINESS CASES",
+      "DIGITALISIERUNG",
+      "WORKFLOW-AUTOMATION"
+    ]
+  },
   "log": {
     "kicker": "// build log",
     "heading": "Verlauf als Commit-Log.",

@@ -2,6 +2,7 @@
 import Nav from './Nav.astro';
 import Hero from './Hero.astro';
 import Proof from './Proof.astro';
+import Ticker from './Ticker.astro';
 import BuildLog from './BuildLog.astro';
 import Work from './Work.astro';
 import Stack from './Stack.astro';
@@ -21,6 +22,7 @@ interface Dict {
   };
   hero: Record<string, any>;
   proof: Record<string, any>;
+  ticker: { items: string[] };
   log: Record<string, any>;
   work: Record<string, any>;
   stack: Record<string, any>;
@@ -49,6 +51,7 @@ const navItems = [
 <main>
   <Hero {...t.hero} />
   <Proof {...t.proof} />
+  <Ticker items={t.ticker.items} />
   <BuildLog {...t.log} />
   <Work {...t.work} />
   <Stack {...t.stack} />

@@ -1,0 +1,24 @@
+---
+interface Props {
+  items: string[];
+}
+
+const { items } = Astro.props;
+---
+
+<div class="ticker relative overflow-hidden border-y border-paper/10 bg-ink-2/70 py-2.5" aria-hidden="true">
+  <div class="ticker-track">
+    {
+      [0, 1].map((dup) => (
+        <div class="flex shrink-0 items-center">
+          {items.map((term) => (
+            <span class="flex items-center font-mono text-[11px] tracking-widest whitespace-nowrap text-faint uppercase">
+              <span class="px-5">{term}</span>
+              <span class="text-acid">·</span>
+            </span>
+          ))}
+        </div>
+      ))
+    }
+  </div>
+</div>

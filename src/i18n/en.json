@@ -41,6 +41,22 @@
       { "value": 1.4, "unit": "", "decimals": 1, "label": "thesis grade", "detail": "final grade 2.1 — DHBW Lörrach, BWL Shipping & Logistics" }
     ]
   },
+  "ticker": {
+    "items": [
+      "LLM PIPELINES",
+      "PROCESS ANALYSIS",
+      "SPOT-MARKET QUOTES",
+      "CHEMICAL LOGISTICS",
+      "FREIGHT INVOICE AUDITING",
+      "SHIPMENT TRACKING",
+      "MYBRIEM",
+      "HUMAN-IN-THE-LOOP",
+      "PROVABLE ROI",
+      "BUSINESS CASES",
+      "DIGITALISATION",
+      "WORKFLOW AUTOMATION"
+    ]
+  },
   "log": {
     "kicker": "// build log",
     "heading": "History as a commit log.",

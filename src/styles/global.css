@@ -197,9 +197,89 @@ body {
   box-shadow: var(--shadow-glow-lg);
 }
 
+/* ---- WebGL shader background ---- */
+#bg-shader {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* ---- cursor particle trail ---- */
+#cursor-trail {
+  display: none;
+}
+.js.cursor-on.trail-on #cursor-trail {
+  display: block;
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 99;
+  pointer-events: none;
+}
+
+/* ---- 3D tilt cards ---- */
+.card-hover.tilt-on {
+  position: relative;
+  transition:
+    border-color 0.35s ease,
+    box-shadow 0.35s ease;
+  will-change: transform;
+  transform-style: preserve-3d;
+}
+.card-hover.tilt-on:hover {
+  transform: none;
+  border-color: color-mix(in srgb, var(--color-acid) 45%, transparent);
+  box-shadow: var(--shadow-glow-lg);
+}
+.tilt-glare {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  background: radial-gradient(
+    320px circle at var(--gx, 50%) var(--gy, 50%),
+    color-mix(in srgb, var(--color-acid) 10%, transparent),
+    transparent 65%
+  );
+}
+[data-tilt].is-tilting .tilt-glare {
+  opacity: 1;
+}
+
+/* ---- ticker ---- */
+.ticker-track {
+  display: flex;
+  width: max-content;
+  animation: ticker-scroll 36s linear infinite;
+}
+@keyframes ticker-scroll {
+  to {
+    transform: translateX(-50%);
+  }
+}
+.ticker:hover .ticker-track {
+  animation-play-state: paused;
+}
+
+/* ---- GSAP takes over reveals: inline tween styles must not fight ----
+   ---- the CSS transition on .reveal                                ---- */
+.js.gsap .reveal,
+.js.gsap .reveal.is-visible {
+  transition: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
+  }
+  .ticker-track {
+    animation-play-state: paused;
   }
   .js .reveal {
     opacity: 1;

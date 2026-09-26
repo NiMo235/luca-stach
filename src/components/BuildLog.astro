@@ -28,7 +28,7 @@ const typeColors: Record<string, string> = {
   <div class="mx-auto max-w-6xl px-4 sm:px-6">
     <div class="reveal">
       <p class="font-mono text-xs text-acid">{kicker}</p>
-      <h2 class="mt-3 font-display text-3xl font-bold tracking-tight text-paper sm:text-5xl">
+      <h2 class="mt-3 font-display text-3xl font-bold tracking-tight text-paper sm:text-5xl" data-scramble>
         {heading}
       </h2>
       <p class="mt-3 max-w-lg font-mono text-xs text-dim sm:text-sm">{sub}</p>
@@ -37,6 +37,7 @@ const typeColors: Record<string, string> = {
     <div class="relative mt-14">
       <div
         class="absolute top-0 bottom-0 left-3 w-px bg-gradient-to-b from-acid/60 via-paper/15 to-transparent sm:left-1/2"
+        data-parallax="24"
         aria-hidden="true"
       ></div>
 
