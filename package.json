@@ -13,7 +13,9 @@
     "@fontsource/newsreader": "^5.2.5",
     "@fontsource/space-grotesk": "^5.2.5",
     "astro": "^5.13.0",
-    "tailwindcss": "^4.1.0"
+    "gsap": "^3.15.0",
+    "tailwindcss": "^4.1.0",
+    "three": "^0.186.1"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.0"
