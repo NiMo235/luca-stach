@@ -2,8 +2,6 @@
 @import '@fontsource/jetbrains-mono/400.css';
 @import '@fontsource/jetbrains-mono/500.css';
 @import '@fontsource/jetbrains-mono/700.css';
-@import '@fontsource/space-grotesk/400.css';
-@import '@fontsource/space-grotesk/500.css';
 @import '@fontsource/space-grotesk/700.css';
 @import '@fontsource/newsreader/400-italic.css';
 @import '@fontsource/newsreader/500-italic.css';
@@ -14,7 +12,7 @@
   --color-ink-3: #131813;
   --color-paper: #e8ece4;
   --color-dim: #8a9186;
-  --color-faint: #565d53;
+  --color-faint: #767e73;
   --color-acid: #b4ff39;
   --color-acid-dim: #b4ff3926;
   --color-warm: #ffb35c;
@@ -42,6 +40,11 @@ body {
 ::selection {
   background: var(--color-acid);
   color: var(--color-ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-acid);
+  outline-offset: 2px;
 }
 
 /* ---- texture layers ---- */

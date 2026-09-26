@@ -6,7 +6,10 @@ const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)
 function bootHero(): void {
   const root = document.documentElement;
   const boot = document.querySelector<HTMLElement>('[data-hero-boot]');
-  if (!boot) return;
+  if (!boot) {
+    root.classList.add('hero-done');
+    return;
+  }
 
   if (prefersReducedMotion) {
     root.classList.add('hero-done');
@@ -15,7 +18,13 @@ function bootHero(): void {
 
   const prompt = boot.dataset.prompt ?? 'whoami';
   const answer = boot.dataset.answer ?? '';
-  const lines: string[] = JSON.parse(boot.dataset.lines ?? '[]');
+  let lines: string[] = [];
+  try {
+    lines = JSON.parse(boot.dataset.lines ?? '[]');
+  } catch {
+    root.classList.add('hero-done');
+    return;
+  }
   const kickerEl = boot.querySelector<HTMLElement>('[data-boot-kicker]');
   const caretEl = boot.querySelector<HTMLElement>('[data-boot-caret]');
   const linesEl = boot.querySelector<HTMLElement>('[data-boot-lines]');
@@ -32,6 +41,16 @@ function bootHero(): void {
       await sleep(speed);
     }
   };
+  // type into an inner span so the trailing caret is not wiped by textContent writes
+  const typeLine = async (parent: HTMLElement, text: string, speed: number) => {
+    const span = document.createElement('span');
+    const caret = document.createElement('span');
+    caret.className = 'hero-caret';
+    parent.appendChild(span);
+    parent.appendChild(caret);
+    await typeText(span, text, speed);
+    caret.remove();
+  };
 
   const run = async () => {
     await sleep(350);
@@ -42,22 +61,14 @@ function bootHero(): void {
 
     const answerLine = document.createElement('p');
     answerLine.className = 'text-acid glow-acid font-bold';
-    const answerCaret = document.createElement('span');
-    answerCaret.className = 'hero-caret';
-    answerLine.appendChild(answerCaret);
     linesEl.appendChild(answerLine);
-    await typeText(answerLine, answer, 26);
-    answerCaret.remove();
+    await typeLine(answerLine, answer, 26);
 
     for (const line of lines) {
       const p = document.createElement('p');
       p.className = 'text-dim';
-      const c = document.createElement('span');
-      c.className = 'hero-caret';
-      p.appendChild(c);
       linesEl.appendChild(p);
-      await typeText(p, line, 12);
-      c.remove();
+      await typeLine(p, line, 12);
       await sleep(90);
     }
 
