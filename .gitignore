@@ -15,3 +15,5 @@ npm-debug.log*
 *.njsproj
 *.sln
 Thumbs.db
+dist-encrypted/
+encrypted/

@@ -1,4 +1,2 @@
 User-agent: *
-Allow: /
-
-Sitemap: https://nimo235.github.io/luca-stach/sitemap.xml
+Disallow: /

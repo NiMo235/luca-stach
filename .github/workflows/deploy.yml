@@ -15,9 +15,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: withastro/action@v3
+      - uses: actions/setup-node@v4
         with:
-          package-manager: npm@latest
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Encrypt pages with StatiCrypt
+        env:
+          STATICRYPT_PASSWORD: ${{ secrets.STATICRYPT_PASSWORD }}
+        run: npx staticrypt dist -r -d dist-encrypted
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist-encrypted/dist
   deploy:
     needs: build
     runs-on: ubuntu-latest
