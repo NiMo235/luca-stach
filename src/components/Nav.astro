@@ -48,7 +48,7 @@ const { langLabel, langHref, items, status } = Astro.props;
         {status}
       </span>
       <a
-        href={langHref}
+        href={`${import.meta.env.BASE_URL}${langHref.replace(/^\//, '')}`}
         hreflang={langLabel === 'EN' ? 'en' : 'de'}
         class="border border-paper/20 px-2.5 py-1 font-mono text-xs text-paper transition-colors hover:border-acid hover:text-acid"
       >
