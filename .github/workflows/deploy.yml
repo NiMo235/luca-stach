@@ -24,7 +24,7 @@ jobs:
       - name: Encrypt pages with StatiCrypt
         env:
           STATICRYPT_PASSWORD: ${{ secrets.STATICRYPT_PASSWORD }}
-        run: npx staticrypt dist -r -d dist-encrypted
+        run: npx staticrypt dist -r -d dist-encrypted -t staticrypt/template.html --template-title "STACH://FLIGHTDECK" --template-instructions "restricted area — access key required" --template-placeholder "access key" --template-button "DECRYPT" --template-error "ACCESS DENIED — wrong key"
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist-encrypted/dist

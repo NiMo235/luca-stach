@@ -28,17 +28,50 @@
     "intro": "Ich baue operative Systeme für eine inhabergeführte Chemielogistik-Spedition — von der Prozessanalyse bis zum LLM, das Angebote schreibt. Weniger manuelle Arbeit. Nachweisbarer ROI.",
     "ctaWork": "View work",
     "ctaContact": "Get in touch",
-    "scroll": "scroll"
+    "scroll": "scroll",
+    "initLines": [
+      "STACH://FLIGHTDECK v2.4 — cold boot",
+      "mounting subsystems",
+      "world.geometry .......... [OK]",
+      "hud.telemetry ........... [OK]",
+      "network.logistics ....... [OK]",
+      "audio.engine ............ [STANDBY]",
+      "identity ................ LUCA STACH"
+    ],
+    "initGranted": "ACCESS GRANTED",
+    "initSkip": "any key — skip"
   },
   "proof": {
     "kicker": "// proof, not promises",
     "heading": "Zahlen, die jeder prüfen kann.",
     "sub": "Keine Adjektive. Nur Ergebnisse aus Produktion.",
     "stats": [
-      { "value": -67, "unit": "%", "label": "Angebotslaufzeit", "detail": "Spotmarkt-Angebote durch LLM-Pipeline, identische Preise" },
-      { "value": 3, "prefix": "&lt;", "unit": "", "label": "Jahre Amortisation", "detail": "Payback laut Business Case der Bachelorarbeit" },
-      { "value": 5, "unit": "", "label": "Kernprozesse auf MyBriem", "detail": "Unternehmensweite Digitalisierungsplattform in Eigenverantwortung" },
-      { "value": 1.4, "unit": "", "decimals": 1, "label": "Note der Bachelorarbeit", "detail": "Abschlussnote 2.1 — DHBW Lörrach, BWL Spedition & Logistik" }
+      {
+        "value": -67,
+        "unit": "%",
+        "label": "Angebotslaufzeit",
+        "detail": "Spotmarkt-Angebote durch LLM-Pipeline, identische Preise"
+      },
+      {
+        "value": 3,
+        "prefix": "&lt;",
+        "unit": "",
+        "label": "Jahre Amortisation",
+        "detail": "Payback laut Business Case der Bachelorarbeit"
+      },
+      {
+        "value": 5,
+        "unit": "",
+        "label": "Kernprozesse auf MyBriem",
+        "detail": "Unternehmensweite Digitalisierungsplattform in Eigenverantwortung"
+      },
+      {
+        "value": 1.4,
+        "unit": "",
+        "decimals": 1,
+        "label": "Note der Bachelorarbeit",
+        "detail": "Abschlussnote 2.1 — DHBW Lörrach, BWL Spedition & Logistik"
+      }
     ]
   },
   "ticker": {
@@ -68,13 +101,34 @@
     "audioOn": "AUDIO: ON",
     "stationsLabel": "stations",
     "stations": [
-      { "id": "top", "label": "BOOT" },
-      { "id": "proof", "label": "PROOF" },
-      { "id": "log", "label": "LOG" },
-      { "id": "work", "label": "WORK" },
-      { "id": "stack", "label": "STACK" },
-      { "id": "beyond", "label": "BEYOND" },
-      { "id": "contact", "label": "DOCK" }
+      {
+        "id": "top",
+        "label": "BOOT"
+      },
+      {
+        "id": "proof",
+        "label": "PROOF"
+      },
+      {
+        "id": "log",
+        "label": "LOG"
+      },
+      {
+        "id": "work",
+        "label": "WORK"
+      },
+      {
+        "id": "stack",
+        "label": "STACK"
+      },
+      {
+        "id": "beyond",
+        "label": "BEYOND"
+      },
+      {
+        "id": "contact",
+        "label": "DOCK"
+      }
     ]
   },
   "log": {
@@ -89,7 +143,11 @@
         "title": "Grundausbildung + Heimatschutz",
         "org": "Bundeswehr",
         "text": "Zehnwöchige Sonderausbildung Heimatschutz. Dienstgrad Obergefreiter. Struktur, Belastbarkeit, Teamführung unter Druck — nicht als Buzzword, als Alltag.",
-        "tags": ["Führung", "Struktur", "Bundeswehr"]
+        "tags": [
+          "Führung",
+          "Struktur",
+          "Bundeswehr"
+        ]
       },
       {
         "hash": "d4e5f60",
@@ -98,7 +156,11 @@
         "title": "Key Account Management Chemie & Automotive",
         "org": "Briem Speditions-GmbH",
         "text": "Betreuung strategischer Kunden in Chemielogistik und Gefahrgut. Hier habe ich gesehen, wie viele Stunden echte Menschen mit Copy-Paste verbringen — und angefangen, das zu ändern.",
-        "tags": ["Chemielogistik", "Gefahrgut", "Automotive"]
+        "tags": [
+          "Chemielogistik",
+          "Gefahrgut",
+          "Automotive"
+        ]
       },
       {
         "hash": "7a8b9c0",
@@ -107,7 +169,11 @@
         "title": "B.A. BWL — Spedition, Transport & Logistik",
         "org": "DHBW Lörrach (dual)",
         "text": "Duales Studium, Abschlussnote 2.1. Bachelorarbeit Note 1.4: „Chancen und Risiken der Automatisierung des Spotmarktvertriebs durch Künstliche Intelligenz — Konzeption einer dialogbasierten Angebotserstellung“.",
-        "tags": ["DHBW", "Note 2.1", "Thesis 1.4"]
+        "tags": [
+          "DHBW",
+          "Note 2.1",
+          "Thesis 1.4"
+        ]
       },
       {
         "hash": "e2f3a4b",
@@ -116,7 +182,11 @@
         "title": "Leitung MyBriem — Digitalisierungsplattform",
         "org": "Briem Speditions-GmbH",
         "text": "Unternehmensweite Plattform in Eigenverantwortung: React, SQL Server, GitHub. Fünf operative Kernprozesse digitalisiert, Teams geschult, Plattform zum Betrieb überführt.",
-        "tags": ["React", "SQL Server", "Enablement"]
+        "tags": [
+          "React",
+          "SQL Server",
+          "Enablement"
+        ]
       },
       {
         "hash": "c5d6e7f",
@@ -125,7 +195,11 @@
         "title": "BizOps Analyst",
         "org": "Briem Speditions-GmbH",
         "text": "Prozessanalyse, Business Cases, LLM- und API-Integrationen — alles mit einem Ziel: aus manuellem Aufwand messbaren Output machen. Nächster Schritt: M.Sc. Artificial Intelligence for Business Management.",
-        "tags": ["BizOps", "LLM", "ROI"]
+        "tags": [
+          "BizOps",
+          "LLM",
+          "ROI"
+        ]
       }
     ]
   },
@@ -139,24 +213,51 @@
         "title": "LLM-gestütztes Angebotssystem",
         "context": "Bachelorarbeit · Note 1.4",
         "text": "Konzeption und Validierung eines dialogbasierten Systems für die Spotmarkt-Angebotserstellung. Aufbauend auf Primärerhebung im Vertrieb, Human-in-the-Loop by Design: Die Maschine entwirft, der Mensch entscheidet.",
-        "results": ["~67 % schnellere Angebote bei identischen Preisen", "Positiver ROI, Amortisation unter 3 Jahren", "Risiken dokumentiert statt weggeredet"],
-        "tags": ["Claude / LLM", "Primärerhebung", "Business Case", "Human-in-the-Loop"]
+        "results": [
+          "~67 % schnellere Angebote bei identischen Preisen",
+          "Positiver ROI, Amortisation unter 3 Jahren",
+          "Risiken dokumentiert statt weggeredet"
+        ],
+        "tags": [
+          "Claude / LLM",
+          "Primärerhebung",
+          "Business Case",
+          "Human-in-the-Loop"
+        ]
       },
       {
         "id": "02",
         "title": "Frachtrechnungsprüfungs-Web-App",
         "context": "Intern · End-to-End",
         "text": "Von der Anforderung bis zum Rollout: Web-App zur Prüfung von Frachtrechnungen. OCR-Parsing, Plausibilitätschecks, Abweichungen werden sichtbar statt teuer. Gebaut, geschult, im Tagesgeschäft genutzt.",
-        "results": ["End-to-End: Analyse, Bau, Schulung, Betrieb", "Manuelle Prüflaufzeit massiv reduziert", "Zero Papierstau im Abrechnungsprozess"],
-        "tags": ["React", "OCR", "SQL Server", "TMS"]
+        "results": [
+          "End-to-End: Analyse, Bau, Schulung, Betrieb",
+          "Manuelle Prüflaufzeit massiv reduziert",
+          "Zero Papierstau im Abrechnungsprozess"
+        ],
+        "tags": [
+          "React",
+          "OCR",
+          "SQL Server",
+          "TMS"
+        ]
       },
       {
         "id": "03",
         "title": "Echtzeit-Sendungsverfolgung",
         "context": "PoC · Premium-Automotive",
         "text": "Proof of Concept für Premium-Kunden aus dem Automotive-Bereich: GPS-Feeds per SFTP automatisiert eingebunden, Sendungen live nachvollziehbar. Vom Rohfeed zur Kundenoberfläche — ohne manuelle Zwischenschritte.",
-        "results": ["GPS-Feeds via SFTP vollautomatisiert", "Live-Status statt Telefonketten", "PoC als Basis für Kundengespräche"],
-        "tags": ["SFTP", "GPS", "PoC", "Automotive"]
+        "results": [
+          "GPS-Feeds via SFTP vollautomatisiert",
+          "Live-Status statt Telefonketten",
+          "PoC als Basis für Kundengespräche"
+        ],
+        "tags": [
+          "SFTP",
+          "GPS",
+          "PoC",
+          "Automotive"
+        ]
       }
     ]
   },
@@ -167,21 +268,60 @@
     "toolsLabel": "Tools",
     "methodsLabel": "Methoden",
     "tools": [
-      { "name": "React", "level": 4 },
-      { "name": "SQL Server", "level": 4 },
-      { "name": "Git & GitHub", "level": 4 },
-      { "name": "Excel / VBA", "level": 5 },
-      { "name": "R", "level": 3 },
-      { "name": "LLM- & API-Integration", "level": 4 },
-      { "name": "OCR / Dokumenten-Parsing", "level": 4 },
-      { "name": "TMS", "level": 4 }
+      {
+        "name": "React",
+        "level": 4
+      },
+      {
+        "name": "SQL Server",
+        "level": 4
+      },
+      {
+        "name": "Git & GitHub",
+        "level": 4
+      },
+      {
+        "name": "Excel / VBA",
+        "level": 5
+      },
+      {
+        "name": "R",
+        "level": 3
+      },
+      {
+        "name": "LLM- & API-Integration",
+        "level": 4
+      },
+      {
+        "name": "OCR / Dokumenten-Parsing",
+        "level": 4
+      },
+      {
+        "name": "TMS",
+        "level": 4
+      }
     ],
     "methods": [
-      { "name": "Prozessanalyse & -redesign", "level": 5 },
-      { "name": "Business Cases & ROI-Modellierung", "level": 5 },
-      { "name": "Anforderungsmanagement", "level": 4 },
-      { "name": "Stakeholder-Management", "level": 4 },
-      { "name": "Schulung & Enablement", "level": 5 }
+      {
+        "name": "Prozessanalyse & -redesign",
+        "level": 5
+      },
+      {
+        "name": "Business Cases & ROI-Modellierung",
+        "level": 5
+      },
+      {
+        "name": "Anforderungsmanagement",
+        "level": 4
+      },
+      {
+        "name": "Stakeholder-Management",
+        "level": 4
+      },
+      {
+        "name": "Schulung & Enablement",
+        "level": 5
+      }
     ]
   },
   "beyond": {
@@ -204,12 +344,24 @@
     "quote": "„Systeme skalieren. Charakter auch — man muss ihn nur trainieren.“",
     "langsTitle": "Sprachen",
     "langs": [
-      { "name": "Deutsch", "level": "Muttersprache" },
-      { "name": "Englisch", "level": "Verhandlungssicher" },
-      { "name": "Französisch", "level": "Grundkenntnisse" }
+      {
+        "name": "Deutsch",
+        "level": "Muttersprache"
+      },
+      {
+        "name": "Englisch",
+        "level": "Verhandlungssicher"
+      },
+      {
+        "name": "Französisch",
+        "level": "Grundkenntnisse"
+      }
     ],
     "certsTitle": "Zertifikate",
-    "certs": ["AEVO — Ausbildereignung (AdA)", "Verkehrsleiter"]
+    "certs": [
+      "AEVO — Ausbildereignung (AdA)",
+      "Verkehrsleiter"
+    ]
   },
   "contact": {
     "kicker": "// contact",

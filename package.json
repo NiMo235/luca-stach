@@ -18,6 +18,7 @@
     "three": "^0.186.1"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.1.0"
+    "@tailwindcss/vite": "^4.1.0",
+    "staticrypt": "^3.5.4"
   }
 }

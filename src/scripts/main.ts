@@ -6,20 +6,45 @@ import { initMicro } from './micro';
 const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /* ------------------------------------------------------------------ */
-/* Hero boot: typed terminal intro                                     */
+/* Cinematic cold boot: typewriter init overlay + typed hero intro     */
 /* ------------------------------------------------------------------ */
-function bootHero(): void {
-  const root = document.documentElement;
-  const boot = document.querySelector<HTMLElement>('[data-hero-boot]');
-  if (!boot) {
-    root.classList.add('hero-done');
-    return;
-  }
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
-  if (prefersReducedMotion) {
-    root.classList.add('hero-done');
-    return;
-  }
+function makeTypewriter(skipped: () => boolean) {
+  /* human cadence: random per-char jitter, pauses on spaces/punctuation */
+  const typeText = async (el: HTMLElement, text: string, base = 26) => {
+    for (let i = 0; i < text.length; i++) {
+      if (skipped()) {
+        el.textContent = text;
+        return;
+      }
+      el.textContent = text.slice(0, i + 1);
+      const ch = text[i];
+      let d = base + Math.random() * 55;
+      if (ch === ' ') d += 50;
+      if ('.:/—-·'.includes(ch)) d += 40;
+      await sleep(d);
+    }
+  };
+  const typeLine = async (parent: HTMLElement, text: string, cls = '', base?: number) => {
+    const p = document.createElement('p');
+    if (cls) p.className = cls;
+    const span = document.createElement('span');
+    const caret = document.createElement('span');
+    caret.className = 'hero-caret';
+    p.append(span, caret);
+    parent.appendChild(p);
+    await typeText(span, text, base);
+    caret.remove();
+    return p;
+  };
+  return { typeText, typeLine };
+}
+
+/* typed hero terminal — shared by the cold boot and the ls/whoami egg */
+async function typeHeroIntro(instant: boolean): Promise<void> {
+  const boot = document.querySelector<HTMLElement>('[data-hero-boot]');
+  if (!boot) return;
 
   const prompt = boot.dataset.prompt ?? 'whoami';
   const answer = boot.dataset.answer ?? '';
@@ -27,61 +52,107 @@ function bootHero(): void {
   try {
     lines = JSON.parse(boot.dataset.lines ?? '[]');
   } catch {
-    root.classList.add('hero-done');
     return;
   }
   const kickerEl = boot.querySelector<HTMLElement>('[data-boot-kicker]');
   const caretEl = boot.querySelector<HTMLElement>('[data-boot-caret]');
   const linesEl = boot.querySelector<HTMLElement>('[data-boot-lines]');
+  if (!kickerEl || !linesEl) return;
 
-  if (!kickerEl || !linesEl) {
-    root.classList.add('hero-done');
-    return;
-  }
-
-  const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
-  const typeText = async (el: HTMLElement, text: string, speed: number) => {
-    for (let i = 0; i < text.length; i++) {
-      el.textContent = text.slice(0, i + 1);
-      await sleep(speed);
-    }
-  };
-  // type into an inner span so the trailing caret is not wiped by textContent writes
-  const typeLine = async (parent: HTMLElement, text: string, speed: number) => {
-    const span = document.createElement('span');
-    const caret = document.createElement('span');
-    caret.className = 'hero-caret';
-    parent.appendChild(span);
-    parent.appendChild(caret);
-    await typeText(span, text, speed);
-    caret.remove();
-  };
-
-  const run = async () => {
-    await sleep(350);
-    await typeText(kickerEl, prompt, 70);
-
-    // move caret into the lines block
+  if (instant) {
+    kickerEl.textContent = prompt;
     caretEl?.remove();
-
-    const answerLine = document.createElement('p');
-    answerLine.className = 'text-acid glow-acid font-bold';
-    linesEl.appendChild(answerLine);
-    await typeLine(answerLine, answer, 26);
-
+    const a = document.createElement('p');
+    a.className = 'text-acid glow-acid font-bold';
+    a.textContent = answer;
+    linesEl.appendChild(a);
     for (const line of lines) {
       const p = document.createElement('p');
       p.className = 'text-dim';
+      p.textContent = line;
       linesEl.appendChild(p);
-      await typeLine(p, line, 12);
-      await sleep(90);
+    }
+    return;
+  }
+
+  const { typeText, typeLine } = makeTypewriter(() => false);
+  await sleep(300);
+  await typeText(kickerEl, prompt, 70);
+
+  caretEl?.remove();
+
+  const answerLine = document.createElement('p');
+  answerLine.className = 'text-acid glow-acid font-bold';
+  linesEl.appendChild(answerLine);
+  await typeLine(answerLine, answer, '', 32);
+
+  for (const line of lines) {
+    const p = document.createElement('p');
+    p.className = 'text-dim';
+    linesEl.appendChild(p);
+    await typeLine(p, line, '', 16);
+    await sleep(200);
+  }
+}
+
+function coldBoot(ready: Promise<unknown> | null): void {
+  const root = document.documentElement;
+  const overlay = document.querySelector<HTMLElement>('[data-boot-overlay]');
+  const done = () => root.classList.add('hero-done');
+
+  if (!overlay || prefersReducedMotion || !document.querySelector('[data-hero-boot]')) {
+    done();
+    return;
+  }
+
+  let skipped = false;
+  const markSkipped = () => {
+    skipped = true;
+  };
+  window.addEventListener('keydown', markSkipped);
+  window.addEventListener('pointerdown', markSkipped);
+  window.addEventListener('wheel', markSkipped);
+
+  const { typeLine } = makeTypewriter(() => skipped);
+
+  const run = async () => {
+    root.classList.add('booting');
+    const linesBox = overlay.querySelector<HTMLElement>('[data-boot-overlay-lines]');
+    let initLines: string[] = [];
+    try {
+      initLines = JSON.parse(overlay.dataset.initLines ?? '[]');
+    } catch {
+      /* empty */
+    }
+    const granted = overlay.dataset.initGranted ?? 'ACCESS GRANTED';
+
+    await sleep(400);
+    if (linesBox) {
+      for (const line of initLines) {
+        await typeLine(linesBox, line, line.includes('[') ? '' : 'text-paper', 13);
+        if (!skipped) await sleep(110);
+      }
+      if (!skipped) await sleep(400);
+      await typeLine(linesBox, granted, 'boot-granted', 45);
+      if (!skipped) await sleep(700);
     }
 
-    await sleep(450);
-    root.classList.add('hero-done');
+    /* hold the curtain until the flight world is actually up (max 2.2s) */
+    if (ready && !skipped) await Promise.race([ready, sleep(2200)]);
+
+    /* overlay fades while the hero terminal types on — one continuous motion */
+    root.classList.remove('booting');
+    await typeHeroIntro(skipped);
+    done();
   };
 
-  run().catch(() => root.classList.add('hero-done'));
+  run()
+    .catch(done)
+    .finally(() => {
+      window.removeEventListener('keydown', markSkipped);
+      window.removeEventListener('pointerdown', markSkipped);
+      window.removeEventListener('wheel', markSkipped);
+    });
 }
 
 /* ------------------------------------------------------------------ */
@@ -244,10 +315,12 @@ function setupTerminalEasterEgg(): void {
       if (linesEl) linesEl.innerHTML = '';
       setTimeout(() => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
-        bootHero();
-        setTimeout(() => {
-          busy = false;
-        }, 600);
+        typeHeroIntro(false)
+          .catch(() => {})
+          .finally(() => {
+            root.classList.add('hero-done');
+            busy = false;
+          });
       }, 120);
     }
   });
@@ -269,14 +342,7 @@ function wantsFlightdeck(): boolean {
 }
 
 /* ------------------------------------------------------------------ */
-bootHero();
-setupScrollEffects();
-setupNavHighlight();
-setupCursor();
-setupTerminalEasterEgg();
-
-initScrambleEffects(prefersReducedMotion);
-initMicro();
+let worldReady: Promise<unknown> | null = null;
 
 if (wantsFlightdeck()) {
   /* Class first so CSS swaps to cockpit layout before the world loads;
@@ -291,7 +357,7 @@ if (wantsFlightdeck()) {
       .catch(() => {});
   };
   document.documentElement.classList.add('flightdeck');
-  import('./flightdeck')
+  worldReady = import('./flightdeck')
     .then((m) => m.initFlightdeck())
     .then((ok) => {
       if (!ok) classic();
@@ -304,7 +370,16 @@ if (wantsFlightdeck()) {
 
   /* GSAP + ScrollTrigger choreography — lazy chunk; the IntersectionObserver
      reveals above remain the fallback when this fails to load. */
-  import('./scrollfx')
+  worldReady = import('./scrollfx')
     .then((m) => m.initScrollFx())
     .catch(() => {});
 }
+
+coldBoot(worldReady);
+setupScrollEffects();
+setupNavHighlight();
+setupCursor();
+setupTerminalEasterEgg();
+
+initScrambleEffects(prefersReducedMotion);
+initMicro();

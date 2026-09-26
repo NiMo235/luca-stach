@@ -124,6 +124,88 @@ body {
   50%, 100% { opacity: 0; }
 }
 
+/* ---- cinematic cold-boot overlay ---- */
+.boot-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: var(--color-ink);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.8s ease, visibility 0s linear 0.8s;
+}
+.js.booting .boot-overlay {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition: opacity 0.25s ease;
+}
+html.booting {
+  overflow: hidden;
+}
+.boot-window {
+  width: min(620px, 100%);
+  border: 1px solid color-mix(in srgb, var(--color-acid) 22%, transparent);
+  background: color-mix(in srgb, var(--color-ink) 88%, black);
+  box-shadow:
+    0 0 60px color-mix(in srgb, var(--color-acid) 6%, transparent),
+    0 30px 80px rgba(0, 0, 0, 0.5);
+}
+.boot-titlebar {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 14px;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-paper) 8%, transparent);
+}
+.boot-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-paper) 18%, transparent);
+}
+.boot-dot:first-child {
+  background: color-mix(in srgb, var(--color-acid) 55%, transparent);
+}
+.boot-title {
+  margin-left: 8px;
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-faint);
+}
+.boot-body {
+  padding: 24px 26px;
+  font-size: 13px;
+  line-height: 1.9;
+  min-height: 15rem;
+  color: var(--color-dim);
+}
+.boot-body p {
+  margin: 0;
+}
+.boot-granted {
+  margin-top: 14px !important;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  color: var(--color-acid);
+  text-shadow: 0 0 18px color-mix(in srgb, var(--color-acid) 55%, transparent);
+}
+.boot-skip {
+  padding: 0 26px 18px;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-faint);
+  animation: caret-blink 1.8s steps(1) infinite;
+}
+
 /* ---- custom cursor ---- */
 @media (pointer: fine) {
   .js.cursor-on,
