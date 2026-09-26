@@ -254,20 +254,57 @@ function setupTerminalEasterEgg(): void {
 }
 
 /* ------------------------------------------------------------------ */
+/* Flight deck gate: pointer fine + wide viewport + motion ok + WebGL  */
+/* ------------------------------------------------------------------ */
+function wantsFlightdeck(): boolean {
+  if (prefersReducedMotion) return false;
+  if (!window.matchMedia('(pointer: fine)').matches) return false;
+  if (!window.matchMedia('(min-width: 1024px)').matches) return false;
+  try {
+    const probe = document.createElement('canvas');
+    return Boolean(probe.getContext('webgl2') ?? probe.getContext('webgl'));
+  } catch {
+    return false;
+  }
+}
+
+/* ------------------------------------------------------------------ */
 bootHero();
 setupScrollEffects();
 setupNavHighlight();
 setupCursor();
 setupTerminalEasterEgg();
 
-/* WebGL / animation layer (all layers self-gate on reduced motion) */
-initShaderBackground(prefersReducedMotion);
-initHeroScene(prefersReducedMotion);
 initScrambleEffects(prefersReducedMotion);
 initMicro();
 
-/* GSAP + ScrollTrigger choreography — lazy chunk; the IntersectionObserver
-   reveals above remain the fallback when this fails to load. */
-import('./scrollfx')
-  .then((m) => m.initScrollFx())
-  .catch(() => {});
+if (wantsFlightdeck()) {
+  /* Class first so CSS swaps to cockpit layout before the world loads;
+     the plasma background, hero scene and GSAP scroll choreography are
+     replaced by the flight rig. On any failure we restore classic. */
+  const classic = () => {
+    document.documentElement.classList.remove('flightdeck');
+    initShaderBackground(prefersReducedMotion);
+    initHeroScene(prefersReducedMotion);
+    import('./scrollfx')
+      .then((m) => m.initScrollFx())
+      .catch(() => {});
+  };
+  document.documentElement.classList.add('flightdeck');
+  import('./flightdeck')
+    .then((m) => m.initFlightdeck())
+    .then((ok) => {
+      if (!ok) classic();
+    })
+    .catch(classic);
+} else {
+  /* WebGL / animation layer (all layers self-gate on reduced motion) */
+  initShaderBackground(prefersReducedMotion);
+  initHeroScene(prefersReducedMotion);
+
+  /* GSAP + ScrollTrigger choreography — lazy chunk; the IntersectionObserver
+     reveals above remain the fallback when this fails to load. */
+  import('./scrollfx')
+    .then((m) => m.initScrollFx())
+    .catch(() => {});
+}
