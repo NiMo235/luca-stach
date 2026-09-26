@@ -1,3 +1,8 @@
+import { initShaderBackground } from './shader-bg';
+import { initHeroScene } from './heroScene';
+import { initScrambleEffects } from './scramble';
+import { initMicro } from './micro';
+
 const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /* ------------------------------------------------------------------ */
@@ -254,3 +259,15 @@ setupScrollEffects();
 setupNavHighlight();
 setupCursor();
 setupTerminalEasterEgg();
+
+/* WebGL / animation layer (all layers self-gate on reduced motion) */
+initShaderBackground(prefersReducedMotion);
+initHeroScene(prefersReducedMotion);
+initScrambleEffects(prefersReducedMotion);
+initMicro();
+
+/* GSAP + ScrollTrigger choreography — lazy chunk; the IntersectionObserver
+   reveals above remain the fallback when this fails to load. */
+import('./scrollfx')
+  .then((m) => m.initScrollFx())
+  .catch(() => {});
