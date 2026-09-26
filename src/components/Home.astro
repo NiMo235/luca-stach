@@ -1,0 +1,57 @@
+---
+import Nav from './Nav.astro';
+import Hero from './Hero.astro';
+import Proof from './Proof.astro';
+import BuildLog from './BuildLog.astro';
+import Work from './Work.astro';
+import Stack from './Stack.astro';
+import Beyond from './Beyond.astro';
+import Contact from './Contact.astro';
+
+interface Dict {
+  nav: {
+    proof: string;
+    work: string;
+    log: string;
+    stack: string;
+    beyond: string;
+    contact: string;
+    langLabel: string;
+    langHref: string;
+  };
+  hero: Record<string, any>;
+  proof: Record<string, any>;
+  log: Record<string, any>;
+  work: Record<string, any>;
+  stack: Record<string, any>;
+  beyond: Record<string, any>;
+  contact: Record<string, any>;
+}
+
+const { t } = Astro.props as { t: Dict };
+
+const navItems = [
+  { id: 'proof', label: t.nav.proof },
+  { id: 'log', label: t.nav.log },
+  { id: 'work', label: t.nav.work },
+  { id: 'stack', label: t.nav.stack },
+  { id: 'beyond', label: t.nav.beyond },
+  { id: 'contact', label: t.nav.contact },
+];
+---
+
+<Nav
+  langLabel={t.nav.langLabel}
+  langHref={t.nav.langHref}
+  items={navItems}
+  status={t.hero.status}
+/>
+<main>
+  <Hero {...t.hero} />
+  <Proof {...t.proof} />
+  <BuildLog {...t.log} />
+  <Work {...t.work} />
+  <Stack {...t.stack} />
+  <Beyond {...t.beyond} />
+</main>
+<Contact {...t.contact} />

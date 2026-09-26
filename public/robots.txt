@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://luca-stach.dev/sitemap.xml

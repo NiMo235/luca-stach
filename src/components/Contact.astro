@@ -1,0 +1,94 @@
+---
+interface Props {
+  kicker: string;
+  heading: string;
+  text: string;
+  email: string;
+  emailLabel: string;
+  linkedin: string;
+  linkedinLabel: string;
+  cvLabel: string;
+  cvHref: string;
+  status: string;
+  imprint: string;
+  copyright: string;
+}
+
+const {
+  kicker,
+  heading,
+  text,
+  email,
+  emailLabel,
+  linkedin,
+  linkedinLabel,
+  cvLabel,
+  cvHref,
+  status,
+  imprint,
+  copyright,
+} = Astro.props;
+---
+
+<footer id="contact" class="relative border-t border-paper/10 py-20 sm:py-28">
+  <div
+    class="pointer-events-none absolute bottom-0 left-1/2 h-72 w-[50rem] max-w-full -translate-x-1/2 rounded-full bg-acid/5 blur-3xl"
+    aria-hidden="true"
+  ></div>
+  <div class="relative mx-auto max-w-6xl px-4 sm:px-6">
+    <div class="reveal">
+      <p class="font-mono text-xs text-acid">{kicker}</p>
+      <h2 class="mt-3 font-display text-3xl font-bold tracking-tight text-paper sm:text-6xl">
+        {heading}
+      </h2>
+      <p class="mt-5 max-w-xl text-sm leading-relaxed text-dim sm:text-base">{text}</p>
+      <p class="mt-4 font-mono text-xs text-warm">
+        <span class="text-acid">$</span> status --open
+        <span class="ml-2 text-dim">{status}</span>
+      </p>
+    </div>
+
+    <div class="reveal mt-12 grid grid-cols-1 gap-px border border-paper/10 bg-paper/10 sm:grid-cols-3">
+      <a
+        href={`mailto:${email}`}
+        class="group bg-ink-2 p-6 transition-colors hover:bg-ink-3"
+      >
+        <p class="font-mono text-[10px] tracking-widest text-faint uppercase">[{emailLabel}]</p>
+        <p class="mt-3 font-mono text-sm text-paper break-all transition-colors group-hover:text-acid">
+          {email}
+        </p>
+        <p class="mt-2 font-mono text-xs text-faint transition-transform group-hover:translate-x-1">
+          →
+        </p>
+      </a>
+      <a
+        href={`https://${linkedin}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="group bg-ink-2 p-6 transition-colors hover:bg-ink-3"
+      >
+        <p class="font-mono text-[10px] tracking-widest text-faint uppercase">[{linkedinLabel}]</p>
+        <p class="mt-3 font-mono text-sm text-paper break-all transition-colors group-hover:text-acid">
+          {linkedin}
+        </p>
+        <p class="mt-2 font-mono text-xs text-faint transition-transform group-hover:translate-x-1">
+          ↗
+        </p>
+      </a>
+      <a href={cvHref} download class="group bg-ink-2 p-6 transition-colors hover:bg-ink-3">
+        <p class="font-mono text-[10px] tracking-widest text-faint uppercase">[cv]</p>
+        <p class="mt-3 font-mono text-sm text-paper break-all transition-colors group-hover:text-acid">
+          {cvLabel}
+        </p>
+        <p class="mt-2 font-mono text-xs text-faint transition-transform group-hover:translate-y-0.5">
+          ↓
+        </p>
+      </a>
+    </div>
+
+    <div class="mt-16 flex flex-col gap-3 border-t border-paper/10 pt-6 sm:flex-row sm:items-center sm:justify-between">
+      <p class="font-mono text-xs text-faint">{imprint}</p>
+      <p class="font-mono text-[11px] text-faint">{copyright}</p>
+    </div>
+  </div>
+</footer>

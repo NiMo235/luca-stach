@@ -1,0 +1,13 @@
+---
+import Base from '../../layouts/Base.astro';
+import Home from '../../components/Home.astro';
+import t from '../../i18n/en.json';
+---
+
+<Base lang="en" title={t.meta.title} description={t.meta.description}>
+  <Home t={t} />
+</Base>
+
+<script>
+  import '../../scripts/main.ts';
+</script>

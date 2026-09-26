@@ -1,0 +1,192 @@
+{
+  "meta": {
+    "title": "Luca Stach — BizOps & AI Automation",
+    "description": "BizOps Analyst bei Briem Speditions-GmbH. Ich baue Systeme, die Angebote 67 % schneller schreiben, Rechnungen prüfen und Speditionen digitalisieren. Prozessanalyse, LLM-Integration, ROI nachweisbar."
+  },
+  "nav": {
+    "proof": "proof",
+    "work": "work",
+    "log": "log",
+    "stack": "stack",
+    "beyond": "beyond",
+    "contact": "contact",
+    "langLabel": "EN",
+    "langHref": "/en/"
+  },
+  "hero": {
+    "prompt": "whoami",
+    "terminalLines": [
+      "> BizOps & AI Automation",
+      "> Briem Speditions-GmbH · Münsingen, DE",
+      "> focus: LLM pipelines · process design · shipping things"
+    ],
+    "kicker": "luca@muensingen:~$ ",
+    "status": "online",
+    "name1": "Luca",
+    "name2": "Stach",
+    "role": "BizOps Analyst & AI Builder",
+    "intro": "Ich baue operative Systeme für eine inhabergeführte Chemielogistik-Spedition — von der Prozessanalyse bis zum LLM, das Angebote schreibt. Weniger manuelle Arbeit. Nachweisbarer ROI.",
+    "ctaWork": "View work",
+    "ctaContact": "Get in touch",
+    "scroll": "scroll"
+  },
+  "proof": {
+    "kicker": "// proof, not promises",
+    "heading": "Zahlen, die jeder prüfen kann.",
+    "sub": "Keine Adjektive. Nur Ergebnisse aus Produktion.",
+    "stats": [
+      { "value": -67, "unit": "%", "label": "Angebotslaufzeit", "detail": "Spotmarkt-Angebote durch LLM-Pipeline, identische Preise" },
+      { "value": 3, "prefix": "&lt;", "unit": "", "label": "Jahre Amortisation", "detail": "Payback laut Business Case der Bachelorarbeit" },
+      { "value": 5, "unit": "", "label": "Kernprozesse auf MyBriem", "detail": "Unternehmensweite Digitalisierungsplattform in Eigenverantwortung" },
+      { "value": 1.4, "unit": "", "decimals": 1, "label": "Note der Bachelorarbeit", "detail": "Abschlussnote 2.1 — DHBW Lörrach, BWL Spedition & Logistik" }
+    ]
+  },
+  "log": {
+    "kicker": "// build log",
+    "heading": "Verlauf als Commit-Log.",
+    "sub": "Jeder Eintrag ein Release. Jede Zeile produktiv.",
+    "entries": [
+      {
+        "hash": "a1b2c3d",
+        "type": "chore",
+        "date": "2022",
+        "title": "Grundausbildung + Heimatschutz",
+        "org": "Bundeswehr",
+        "text": "Zehnwöchige Sonderausbildung Heimatschutz. Dienstgrad Obergefreiter. Struktur, Belastbarkeit, Teamführung unter Druck — nicht als Buzzword, als Alltag.",
+        "tags": ["Führung", "Struktur", "Bundeswehr"]
+      },
+      {
+        "hash": "d4e5f60",
+        "type": "feat",
+        "date": "2021 – 2023",
+        "title": "Key Account Management Chemie & Automotive",
+        "org": "Briem Speditions-GmbH",
+        "text": "Betreuung strategischer Kunden in Chemielogistik und Gefahrgut. Hier habe ich gesehen, wie viele Stunden echte Menschen mit Copy-Paste verbringen — und angefangen, das zu ändern.",
+        "tags": ["Chemielogistik", "Gefahrgut", "Automotive"]
+      },
+      {
+        "hash": "7a8b9c0",
+        "type": "feat",
+        "date": "Okt 2023 – Sep 2026",
+        "title": "B.A. BWL — Spedition, Transport & Logistik",
+        "org": "DHBW Lörrach (dual)",
+        "text": "Duales Studium, Abschlussnote 2.1. Bachelorarbeit Note 1.4: „Chancen und Risiken der Automatisierung des Spotmarktvertriebs durch Künstliche Intelligenz — Konzeption einer dialogbasierten Angebotserstellung“.",
+        "tags": ["DHBW", "Note 2.1", "Thesis 1.4"]
+      },
+      {
+        "hash": "e2f3a4b",
+        "type": "feat",
+        "date": "laufend",
+        "title": "Leitung MyBriem — Digitalisierungsplattform",
+        "org": "Briem Speditions-GmbH",
+        "text": "Unternehmensweite Plattform in Eigenverantwortung: React, SQL Server, GitHub. Fünf operative Kernprozesse digitalisiert, Teams geschult, Plattform zum Betrieb überführt.",
+        "tags": ["React", "SQL Server", "Enablement"]
+      },
+      {
+        "hash": "c5d6e7f",
+        "type": "feat",
+        "date": "heute",
+        "title": "BizOps Analyst",
+        "org": "Briem Speditions-GmbH",
+        "text": "Prozessanalyse, Business Cases, LLM- und API-Integrationen — alles mit einem Ziel: aus manuellem Aufwand messbaren Output machen. Nächster Schritt: M.Sc. Artificial Intelligence for Business Management.",
+        "tags": ["BizOps", "LLM", "ROI"]
+      }
+    ]
+  },
+  "work": {
+    "kicker": "// selected work",
+    "heading": "Drei Systeme, die laufen.",
+    "sub": "Konzipiert, gebaut, in Produktion. Nicht in Folien.",
+    "cases": [
+      {
+        "id": "01",
+        "title": "LLM-gestütztes Angebotssystem",
+        "context": "Bachelorarbeit · Note 1.4",
+        "text": "Konzeption und Validierung eines dialogbasierten Systems für die Spotmarkt-Angebotserstellung. Aufbauend auf Primärerhebung im Vertrieb, Human-in-the-Loop by Design: Die Maschine entwirft, der Mensch entscheidet.",
+        "results": ["~67 % schnellere Angebote bei identischen Preisen", "Positiver ROI, Amortisation unter 3 Jahren", "Risiken dokumentiert statt weggeredet"],
+        "tags": ["Claude / LLM", "Primärerhebung", "Business Case", "Human-in-the-Loop"]
+      },
+      {
+        "id": "02",
+        "title": "Frachtrechnungsprüfungs-Web-App",
+        "context": "Intern · End-to-End",
+        "text": "Von der Anforderung bis zum Rollout: Web-App zur Prüfung von Frachtrechnungen. OCR-Parsing, Plausibilitätschecks, Abweichungen werden sichtbar statt teuer. Gebaut, geschult, im Tagesgeschäft genutzt.",
+        "results": ["End-to-End: Analyse, Bau, Schulung, Betrieb", "Manuelle Prüflaufzeit massiv reduziert", "Zero Papierstau im Abrechnungsprozess"],
+        "tags": ["React", "OCR", "SQL Server", "TMS"]
+      },
+      {
+        "id": "03",
+        "title": "Echtzeit-Sendungsverfolgung",
+        "context": "PoC · Premium-Automotive",
+        "text": "Proof of Concept für Premium-Kunden aus dem Automotive-Bereich: GPS-Feeds per SFTP automatisiert eingebunden, Sendungen live nachvollziehbar. Vom Rohfeed zur Kundenoberfläche — ohne manuelle Zwischenschritte.",
+        "results": ["GPS-Feeds via SFTP vollautomatisiert", "Live-Status statt Telefonketten", "PoC als Basis für Kundengespräche"],
+        "tags": ["SFTP", "GPS", "PoC", "Automotive"]
+      }
+    ]
+  },
+  "stack": {
+    "kicker": "// stack & methods",
+    "heading": "Werkzeuge. Systeme. Denkweise.",
+    "sub": "Level 1 = gearbeitet, Level 5 = lehre es anderen.",
+    "toolsLabel": "Tools",
+    "methodsLabel": "Methoden",
+    "tools": [
+      { "name": "React", "level": 4 },
+      { "name": "SQL Server", "level": 4 },
+      { "name": "Git & GitHub", "level": 4 },
+      { "name": "Excel / VBA", "level": 5 },
+      { "name": "R", "level": 3 },
+      { "name": "LLM- & API-Integration", "level": 4 },
+      { "name": "OCR / Dokumenten-Parsing", "level": 4 },
+      { "name": "TMS", "level": 4 }
+    ],
+    "methods": [
+      { "name": "Prozessanalyse & -redesign", "level": 5 },
+      { "name": "Business Cases & ROI-Modellierung", "level": 5 },
+      { "name": "Anforderungsmanagement", "level": 4 },
+      { "name": "Stakeholder-Management", "level": 4 },
+      { "name": "Schulung & Enablement", "level": 5 }
+    ]
+  },
+  "beyond": {
+    "kicker": "// beyond work",
+    "heading": "Nur Output ist langweilig.",
+    "items": [
+      {
+        "title": "Techno-DJing",
+        "text": "Vier Decks, ein Publikum, null Playlist-Autopilot. Lesen, was ein Raum braucht — Timing ist alles. Auch im BizOps."
+      },
+      {
+        "title": "Krafttraining & Ernährung",
+        "text": "Progressive Überladung gilt im Rack wie im Prozess. Kleine, wiederholbare Gewinne, protokolliert. Compounding ist keine Metapher."
+      },
+      {
+        "title": "Podcast",
+        "text": "Gespräche führen, Inhalte schneiden, Publikum aufbauen. Die Disziplin, komplexe Dinge hörbar zu machen."
+      }
+    ],
+    "quote": "„Systeme skalieren. Charakter auch — man muss ihn nur trainieren.“",
+    "langsTitle": "Sprachen",
+    "langs": [
+      { "name": "Deutsch", "level": "Muttersprache" },
+      { "name": "Englisch", "level": "Verhandlungssicher" },
+      { "name": "Französisch", "level": "Grundkenntnisse" }
+    ],
+    "certsTitle": "Zertifikate",
+    "certs": ["AEVO — Ausbildereignung (AdA)", "Verkehrsleiter"]
+  },
+  "contact": {
+    "kicker": "// contact",
+    "heading": "Sagen wir es direkt.",
+    "text": "Du hast einen Prozess, der zu viel menschliche Zeit frisst? Schreib mir. Ich antworte mit einer ehrlichen Ersteinschätzung — nicht mit einem Pitch.",
+    "email": "lumastach@gmail.com",
+    "emailLabel": "mail",
+    "linkedin": "linkedin.com/in/luca-stach",
+    "linkedinLabel": "in",
+    "cvLabel": "Lebenslauf.pdf",
+    "cvHref": "/assets/luca-stach-cv.pdf",
+    "status": "open for M.Sc. AI for Business Management & spannende Projekte",
+    "imprint": "Standort: Münsingen, DE",
+    "copyright": "© 2026 Luca Stach. Gebaut mit Astro, Tailwind & zu viel Espresso."
+  }
+}

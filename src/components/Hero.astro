@@ -1,0 +1,90 @@
+---
+interface Props {
+  prompt: string;
+  kicker: string;
+  status: string;
+  terminalLines: string[];
+  name1: string;
+  name2: string;
+  role: string;
+  intro: string;
+  ctaWork: string;
+  ctaContact: string;
+  scroll: string;
+}
+
+const { prompt, kicker, status, terminalLines, name1, name2, role, intro, ctaWork, ctaContact, scroll } = Astro.props;
+const typedTarget = `${name1} ${name2} — ${role}`;
+---
+
+<section id="top" class="relative flex min-h-screen flex-col justify-center overflow-hidden">
+  <div
+    class="pointer-events-none absolute -top-32 left-1/2 h-96 w-[42rem] -translate-x-1/2 rounded-full bg-acid/5 blur-3xl"
+    aria-hidden="true"
+  ></div>
+
+  <div class="mx-auto w-full max-w-6xl px-4 pt-32 pb-16 sm:px-6 md:pt-28">
+    <!-- boot terminal (JS + motion only) -->
+    <div
+      class="hero-boot font-mono text-sm sm:text-base"
+      data-hero-boot
+      data-prompt={prompt}
+      data-answer={typedTarget}
+      data-lines={JSON.stringify(terminalLines)}
+      data-kicker={kicker}
+    >
+      <p class="mb-2 text-faint">
+        <span data-boot-kicker>{kicker}</span><span class="hero-caret" data-boot-caret></span>
+      </p>
+      <div data-boot-lines class="min-h-[7rem] space-y-1 text-paper/90"></div>
+    </div>
+
+    <!-- resolved hero -->
+    <div class="hero-static">
+      <p class="mb-4 font-mono text-xs text-acid glow-acid">
+        {kicker}<span class="text-faint">whoami</span>
+      </p>
+      <h1
+        class="font-display text-[clamp(3.5rem,13vw,9rem)] leading-[0.9] font-bold tracking-tighter uppercase"
+      >
+        <span class="block text-paper">{name1}</span>
+        <span class="block text-outline">{name2}</span>
+      </h1>
+      <p class="mt-6 font-mono text-sm text-acid sm:text-base">
+        <span class="text-faint">$</span> {role}
+        <span class="ml-2 inline-block h-3.5 w-2 translate-y-0.5 bg-acid shadow-glow" aria-hidden="true"></span>
+      </p>
+      <p class="mt-6 max-w-xl text-sm leading-relaxed text-dim sm:text-base">
+        {intro}
+      </p>
+      <div class="mt-10 flex flex-wrap items-center gap-3">
+        <a
+          href="#work"
+          class="group inline-flex items-center gap-2 border border-acid bg-acid/10 px-5 py-3 font-mono text-sm text-acid transition-all hover:bg-acid hover:text-ink hover:shadow-glow"
+        >
+          {ctaWork}
+          <span aria-hidden="true" class="transition-transform group-hover:translate-x-1">→</span>
+        </a>
+        <a
+          href="#contact"
+          class="inline-flex items-center gap-2 border border-paper/25 px-5 py-3 font-mono text-sm text-paper transition-colors hover:border-acid hover:text-acid"
+        >
+          {ctaContact}
+        </a>
+        <span class="ml-2 hidden font-mono text-[11px] text-faint sm:inline">
+          <span class="text-acid">●</span> {status}
+        </span>
+      </div>
+      <p class="mt-4 font-mono text-[11px] leading-relaxed text-faint">
+        {terminalLines.map((line) => <span class="block">{line}</span>)}
+      </p>
+    </div>
+  </div>
+
+  <a
+    href="#proof"
+    class="absolute bottom-6 left-1/2 -translate-x-1/2 font-mono text-[10px] tracking-widest text-faint uppercase transition-colors hover:text-acid"
+  >
+    {scroll} ↓
+  </a>
+</section>

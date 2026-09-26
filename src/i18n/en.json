@@ -1,0 +1,192 @@
+{
+  "meta": {
+    "title": "Luca Stach — BizOps & AI Automation",
+    "description": "BizOps Analyst at Briem Speditions-GmbH. I build systems that write quotes 67% faster, audit freight invoices and digitise freight forwarding. Process analysis, LLM integration, proven ROI."
+  },
+  "nav": {
+    "proof": "proof",
+    "work": "work",
+    "log": "log",
+    "stack": "stack",
+    "beyond": "beyond",
+    "contact": "contact",
+    "langLabel": "DE",
+    "langHref": "/"
+  },
+  "hero": {
+    "prompt": "whoami",
+    "terminalLines": [
+      "> BizOps & AI Automation",
+      "> Briem Speditions-GmbH · Münsingen, DE",
+      "> focus: LLM pipelines · process design · shipping things"
+    ],
+    "kicker": "luca@muensingen:~$ ",
+    "status": "online",
+    "name1": "Luca",
+    "name2": "Stach",
+    "role": "BizOps Analyst & AI Builder",
+    "intro": "I build operational systems for a family-owned chemical logistics carrier — from process analysis to the LLM that writes the quotes. Less manual work. Provable ROI.",
+    "ctaWork": "View work",
+    "ctaContact": "Get in touch",
+    "scroll": "scroll"
+  },
+  "proof": {
+    "kicker": "// proof, not promises",
+    "heading": "Numbers anyone can audit.",
+    "sub": "No adjectives. Only results from production.",
+    "stats": [
+      { "value": -67, "unit": "%", "label": "quote turnaround", "detail": "spot-market quotes via LLM pipeline, identical pricing" },
+      { "value": 3, "prefix": "&lt;", "unit": "", "label": "years payback", "detail": "amortisation per the thesis business case" },
+      { "value": 5, "unit": "", "label": "core processes on MyBriem", "detail": "company-wide digitisation platform, owned end-to-end" },
+      { "value": 1.4, "unit": "", "decimals": 1, "label": "thesis grade", "detail": "final grade 2.1 — DHBW Lörrach, BWL Shipping & Logistics" }
+    ]
+  },
+  "log": {
+    "kicker": "// build log",
+    "heading": "History as a commit log.",
+    "sub": "Every entry a release. Every line in production.",
+    "entries": [
+      {
+        "hash": "a1b2c3d",
+        "type": "chore",
+        "date": "2022",
+        "title": "Basic training + homeland defence",
+        "org": "Bundeswehr",
+        "text": "Ten-week homeland defence special training. Rank: Obergefreiter. Structure, resilience, leading under pressure — not as a buzzword, as daily routine.",
+        "tags": ["Leadership", "Structure", "Bundeswehr"]
+      },
+      {
+        "hash": "d4e5f60",
+        "type": "feat",
+        "date": "2021 – 2023",
+        "title": "Key Account Management Chemicals & Automotive",
+        "org": "Briem Speditions-GmbH",
+        "text": "Managing strategic accounts in chemical logistics and dangerous goods. Where I watched real humans spend hours on copy-paste — and started changing it.",
+        "tags": ["Chemical logistics", "Dangerous goods", "Automotive"]
+      },
+      {
+        "hash": "7a8b9c0",
+        "type": "feat",
+        "date": "Oct 2023 – Sep 2026",
+        "title": "B.A. Business Administration — Shipping, Transport & Logistics",
+        "org": "DHBW Lörrach (dual)",
+        "text": "Dual degree, final grade 2.1. Thesis graded 1.4: “Opportunities and Risks of Automating Spot-Market Sales through Artificial Intelligence — Conception of a Dialogue-Based Quote Creation”.",
+        "tags": ["DHBW", "Grade 2.1", "Thesis 1.4"]
+      },
+      {
+        "hash": "e2f3a4b",
+        "type": "feat",
+        "date": "ongoing",
+        "title": "Leading MyBriem — digitisation platform",
+        "org": "Briem Speditions-GmbH",
+        "text": "Company-wide platform owned end-to-end: React, SQL Server, GitHub. Five core processes digitised, teams trained, platform carried into production.",
+        "tags": ["React", "SQL Server", "Enablement"]
+      },
+      {
+        "hash": "c5d6e7f",
+        "type": "feat",
+        "date": "today",
+        "title": "BizOps Analyst",
+        "org": "Briem Speditions-GmbH",
+        "text": "Process analysis, business cases, LLM and API integrations — one goal: turn manual effort into measurable output. Next step: M.Sc. Artificial Intelligence for Business Management.",
+        "tags": ["BizOps", "LLM", "ROI"]
+      }
+    ]
+  },
+  "work": {
+    "kicker": "// selected work",
+    "heading": "Three systems in production.",
+    "sub": "Conceived, built, running. Not slideware.",
+    "cases": [
+      {
+        "id": "01",
+        "title": "LLM-assisted quote system",
+        "context": "Bachelor thesis · grade 1.4",
+        "text": "Conception and validation of a dialogue-based system for spot-market quote creation. Built on primary research in sales, human-in-the-loop by design: the machine drafts, the human decides.",
+        "results": ["~67% faster quotes at identical prices", "Positive ROI, payback under 3 years", "Risks documented, not talked away"],
+        "tags": ["Claude / LLM", "Primary research", "Business case", "Human-in-the-loop"]
+      },
+      {
+        "id": "02",
+        "title": "Freight invoice audit web app",
+        "context": "Internal · end-to-end",
+        "text": "From requirements to rollout: a web app that audits freight invoices. OCR parsing, plausibility checks, deviations become visible instead of expensive. Built, trained, used daily.",
+        "results": ["End-to-end: analysis, build, training, operation", "Manual audit effort massively reduced", "Zero paper jams in billing"],
+        "tags": ["React", "OCR", "SQL Server", "TMS"]
+      },
+      {
+        "id": "03",
+        "title": "Real-time shipment tracking",
+        "context": "PoC · premium automotive",
+        "text": "Proof of concept for premium automotive customers: GPS feeds pulled in automatically via SFTP, shipments traceable live. From raw feed to customer-facing view — no manual steps in between.",
+        "results": ["GPS feeds fully automated via SFTP", "Live status instead of phone chains", "PoC as the basis for customer conversations"],
+        "tags": ["SFTP", "GPS", "PoC", "Automotive"]
+      }
+    ]
+  },
+  "stack": {
+    "kicker": "// stack & methods",
+    "heading": "Tools. Systems. Mindset.",
+    "sub": "Level 1 = used it, Level 5 = I teach it.",
+    "toolsLabel": "Tools",
+    "methodsLabel": "Methods",
+    "tools": [
+      { "name": "React", "level": 4 },
+      { "name": "SQL Server", "level": 4 },
+      { "name": "Git & GitHub", "level": 4 },
+      { "name": "Excel / VBA", "level": 5 },
+      { "name": "R", "level": 3 },
+      { "name": "LLM & API integration", "level": 4 },
+      { "name": "OCR / document parsing", "level": 4 },
+      { "name": "TMS", "level": 4 }
+    ],
+    "methods": [
+      { "name": "Process analysis & redesign", "level": 5 },
+      { "name": "Business cases & ROI modelling", "level": 5 },
+      { "name": "Requirements management", "level": 4 },
+      { "name": "Stakeholder management", "level": 4 },
+      { "name": "Training & enablement", "level": 5 }
+    ]
+  },
+  "beyond": {
+    "kicker": "// beyond work",
+    "heading": "Output alone is boring.",
+    "items": [
+      {
+        "title": "Techno DJing",
+        "text": "Four decks, one room, zero playlist autopilot. Reading what a crowd needs — timing is everything. In BizOps too."
+      },
+      {
+        "title": "Strength training & nutrition",
+        "text": "Progressive overload applies at the rack and in a process alike. Small, repeatable, logged wins. Compounding is not a metaphor."
+      },
+      {
+        "title": "Podcast",
+        "text": "Running conversations, cutting content, building an audience. The discipline of making complex things listenable."
+      }
+    ],
+    "quote": "“Systems scale. So does character — you just have to train it.”",
+    "langsTitle": "Languages",
+    "langs": [
+      { "name": "German", "level": "Native" },
+      { "name": "English", "level": "Business fluent" },
+      { "name": "French", "level": "Basics" }
+    ],
+    "certsTitle": "Certifications",
+    "certs": ["AEVO — trainer qualification (AdA)", "Transport manager (Verkehrsleiter)"]
+  },
+  "contact": {
+    "kicker": "// contact",
+    "heading": "Let's keep it direct.",
+    "text": "Got a process that eats too much human time? Write me. You'll get an honest first assessment — not a pitch.",
+    "email": "lumastach@gmail.com",
+    "emailLabel": "mail",
+    "linkedin": "linkedin.com/in/luca-stach",
+    "linkedinLabel": "in",
+    "cvLabel": "CV.pdf",
+    "cvHref": "/assets/luca-stach-cv.pdf",
+    "status": "open for M.Sc. AI for Business Management & interesting problems",
+    "imprint": "Based in: Münsingen, DE",
+    "copyright": "© 2026 Luca Stach. Built with Astro, Tailwind & too much espresso."
+  }
+}
