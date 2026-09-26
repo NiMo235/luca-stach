@@ -87,14 +87,14 @@ body {
 }
 
 /* ---- reveal on scroll ---- */
-.reveal {
+.js .reveal {
   opacity: 0;
   transform: translateY(28px);
   transition:
     opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
     transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
 }
-.reveal.is-visible {
+.js .reveal.is-visible {
   opacity: 1;
   transform: translateY(0);
 }
@@ -168,12 +168,12 @@ body {
 }
 
 /* ---- skill bars ---- */
-.bar-fill {
+.js .bar-fill {
   transform: scaleX(0);
   transform-origin: left;
   transition: transform 1s cubic-bezier(0.22, 1, 0.36, 1);
 }
-.is-visible .bar-fill {
+.js .is-visible .bar-fill {
   transform: scaleX(1);
 }
 
@@ -198,12 +198,12 @@ body {
   html {
     scroll-behavior: auto;
   }
-  .reveal {
+  .js .reveal {
     opacity: 1;
     transform: none;
     transition: none;
   }
-  .bar-fill {
+  .js .bar-fill {
     transform: scaleX(1);
     transition: none;
   }
