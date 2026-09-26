@@ -1,18 +1,26 @@
 /* ------------------------------------------------------------------ */
 /* Flight world: the 3D space the camera flies through.                */
-/* Starfield, receding grid floor, a scaled-up "logistics network"     */
-/* centerpiece (same node/edge/packet recipe as hero3d), floating      */
-/* wireframe bodies, gate rings between stations and warp streaks      */
-/* that stretch during transits. Additive acid + paper on ink.         */
+/* One continuous morphing corridor — no scene swaps. A themes[]       */
+/* table (accent / fog / tint / world-speed per station) is lerped     */
+/* every frame from overall progress, and per-station object sets      */
+/* (terminal hologram, data towers, commit-node timeline, container    */
+/* yard, skill constellation, soundwave rings, docking platform) live  */
+/* at their station's z-range and fade in/out with camera proximity.   */
+/* Gate rings are pre-tinted toward the accent of the station they     */
+/* lead into. Additive acid + paper on ink, palette break to amber     */
+/* at BEYOND/DOCK.                                                     */
 /* ------------------------------------------------------------------ */
 
 import * as THREE from 'three';
 
 const ACID = new THREE.Color('#b4ff39');
+const ACID_CYAN = new THREE.Color('#7dffd8');
 const PAPER = new THREE.Color('#e8ece4');
 const PAPER_DIM = new THREE.Color('#8a9186');
 const WARM = new THREE.Color('#ffb35c');
 const INK = new THREE.Color('#0a0d0a');
+const WHITE = new THREE.Color('#ffffff');
+const WARM_TINT = new THREE.Color('#ffcf9a');
 
 const STATIONS = 7;
 const SEG = 36; // distance between stations on z
@@ -32,6 +40,33 @@ const LOOK_KEYS = CAM_KEYS.map((v) => new THREE.Vector3(v.x * 0.25, v.y * 0.25, 
 const BASE_FOV = 75;
 const PUNCH_FOV = 92;
 
+/* ---- per-station world themes (lerped continuously) ---- */
+interface Theme {
+  accent: THREE.Color; // gates ahead, streaks, packets, acid wireframes
+  fog: THREE.Color; // fog + clear color
+  fogDensity: number;
+  tint: THREE.Color; // multiplier for stars / network nodes / grids
+  speed: number; // world time-scale (DOCK slows everything down)
+}
+const themes: Theme[] = [
+  { accent: ACID, fog: INK, fogDensity: 0.011, tint: WHITE, speed: 1 }, // 01 BOOT
+  { accent: ACID, fog: INK, fogDensity: 0.012, tint: WHITE, speed: 1 }, // 02 PROOF
+  { accent: ACID, fog: INK, fogDensity: 0.011, tint: WHITE, speed: 1 }, // 03 LOG
+  { accent: ACID_CYAN, fog: INK, fogDensity: 0.0125, tint: WHITE, speed: 1.05 }, // 04 WORK
+  { accent: ACID, fog: INK, fogDensity: 0.0095, tint: WHITE, speed: 0.9 }, // 05 STACK
+  { accent: WARM, fog: new THREE.Color('#1a0f06'), fogDensity: 0.02, tint: WARM_TINT, speed: 1 }, // 06 BEYOND
+  { accent: WARM, fog: new THREE.Color('#140c06'), fogDensity: 0.016, tint: WARM_TINT, speed: 0.45 }, // 07 DOCK
+];
+
+type FadeMat = THREE.MeshBasicMaterial | THREE.LineBasicMaterial | THREE.PointsMaterial;
+
+interface StationSet {
+  i: number;
+  group: THREE.Group;
+  mats: FadeMat[];
+  tick?: (fade: number, wdt: number, t: number, dist: number) => void;
+}
+
 export interface FlightWorld {
   /** advance & render one frame: p in [0,1], transit intensity 0..1 */
   update(p: number, transit: number, dt: number, now: number): void;
@@ -47,10 +82,11 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
     alpha: false,
     powerPreference: 'high-performance',
   });
-  renderer.setClearColor(INK, 1);
+  renderer.setClearColor(themes[0].fog, 1);
 
   const scene = new THREE.Scene();
-  scene.fog = new THREE.FogExp2(INK.getHex(), 0.011);
+  const fog = new THREE.FogExp2(themes[0].fog.getHex(), themes[0].fogDensity);
+  scene.fog = fog;
 
   const camera = new THREE.PerspectiveCamera(BASE_FOV, 1, 0.1, 400);
   camera.position.copy(CAM_KEYS[0]);
@@ -59,6 +95,16 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
   const lookCurve = new THREE.CatmullRomCurve3(LOOK_KEYS, false, 'catmullrom', 0.35);
 
   const midZ = (-SEG * (STATIONS - 1)) / 2;
+
+  const fadeMat = <T extends FadeMat>(m: T, base: number, color: THREE.Color): T => {
+    m.color.copy(color);
+    m.transparent = true;
+    m.opacity = base;
+    m.blending = THREE.AdditiveBlending;
+    m.depthWrite = false;
+    m.userData.base = base;
+    return m;
+  };
 
   /* ---- starfield ---- */
   const STAR_COUNT = 2000;
@@ -91,7 +137,7 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
   /* ---- receding grid floor ---- */
   const grid = new THREE.GridHelper(560, 90, ACID.getHex(), PAPER_DIM.getHex());
   grid.position.set(0, -15, midZ);
-  const gridMat = grid.material as THREE.Material;
+  const gridMat = grid.material as THREE.LineBasicMaterial;
   gridMat.transparent = true;
   gridMat.opacity = 0.08;
   gridMat.blending = THREE.AdditiveBlending;
@@ -99,7 +145,7 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
   scene.add(grid);
   const gridCeil = new THREE.GridHelper(560, 90, ACID.getHex(), PAPER_DIM.getHex());
   gridCeil.position.set(0, 18, midZ);
-  const gridCeilMat = gridCeil.material as THREE.Material;
+  const gridCeilMat = gridCeil.material as THREE.LineBasicMaterial;
   gridCeilMat.transparent = true;
   gridCeilMat.opacity = 0.04;
   gridCeilMat.blending = THREE.AdditiveBlending;
@@ -132,19 +178,15 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
   const nodeGeo = new THREE.BufferGeometry();
   nodeGeo.setAttribute('position', new THREE.BufferAttribute(nodePos, 3));
   nodeGeo.setAttribute('color', new THREE.BufferAttribute(nodeCol, 3));
-  netGroup.add(
-    new THREE.Points(
-      nodeGeo,
-      new THREE.PointsMaterial({
-        size: 0.22,
-        vertexColors: true,
-        transparent: true,
-        opacity: 0.95,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false,
-      }),
-    ),
-  );
+  const nodeMat = new THREE.PointsMaterial({
+    size: 0.22,
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.95,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+  });
+  netGroup.add(new THREE.Points(nodeGeo, nodeMat));
 
   const edges: Array<[number, number]> = [];
   const seen = new Set<string>();
@@ -173,18 +215,14 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
   });
   const edgeGeo = new THREE.BufferGeometry();
   edgeGeo.setAttribute('position', new THREE.BufferAttribute(edgePos, 3));
-  netGroup.add(
-    new THREE.LineSegments(
-      edgeGeo,
-      new THREE.LineBasicMaterial({
-        color: PAPER_DIM,
-        transparent: true,
-        opacity: 0.16,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false,
-      }),
-    ),
-  );
+  const edgeMat = new THREE.LineBasicMaterial({
+    color: PAPER_DIM,
+    transparent: true,
+    opacity: 0.16,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+  });
+  netGroup.add(new THREE.LineSegments(edgeGeo, edgeMat));
 
   const packets = Array.from({ length: PACKET_COUNT }, () => ({
     edge: (Math.random() * edges.length) | 0,
@@ -194,22 +232,19 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
   const packetPos = new Float32Array(PACKET_COUNT * 3);
   const packetGeo = new THREE.BufferGeometry();
   packetGeo.setAttribute('position', new THREE.BufferAttribute(packetPos, 3));
-  netGroup.add(
-    new THREE.Points(
-      packetGeo,
-      new THREE.PointsMaterial({
-        size: 0.38,
-        color: ACID,
-        transparent: true,
-        opacity: 0.95,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false,
-      }),
-    ),
-  );
+  const packetMat = new THREE.PointsMaterial({
+    size: 0.38,
+    color: ACID,
+    transparent: true,
+    opacity: 0.95,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+  });
+  netGroup.add(new THREE.Points(packetGeo, packetMat));
 
   /* ---- floating wireframes along the corridor ---- */
   const wireframes: THREE.Mesh[] = [];
+  const acidWireMats: THREE.MeshBasicMaterial[] = [];
   const wireGeos = [
     new THREE.IcosahedronGeometry(1, 0),
     new THREE.TorusGeometry(1, 0.32, 8, 20),
@@ -217,14 +252,16 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
   ];
   for (let i = 0; i < 14; i++) {
     const geo = wireGeos[i % wireGeos.length];
+    const isAcid = i % 3 === 0;
     const mat = new THREE.MeshBasicMaterial({
       wireframe: true,
-      color: i % 3 === 0 ? ACID : PAPER,
+      color: isAcid ? ACID : PAPER,
       transparent: true,
-      opacity: i % 3 === 0 ? 0.2 : 0.08,
+      opacity: isAcid ? 0.2 : 0.08,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     });
+    if (isAcid) acidWireMats.push(mat);
     const m = new THREE.Mesh(geo, mat);
     const side = i % 2 === 0 ? 1 : -1;
     m.position.set(
@@ -240,11 +277,11 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
     scene.add(m);
   }
 
-  /* ---- gate rings between stations ---- */
+  /* ---- gate rings between stations, pre-tinted toward the target theme ---- */
   const gates: THREE.Mesh<THREE.TorusGeometry, THREE.MeshBasicMaterial>[] = [];
   for (let i = 0; i < STATIONS - 1; i++) {
     const mat = new THREE.MeshBasicMaterial({
-      color: ACID,
+      color: themes[i + 1].accent,
       transparent: true,
       opacity: 0.28,
       blending: THREE.AdditiveBlending,
@@ -290,6 +327,403 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
   };
   for (let k = 0; k < STREAKS; k++) seedStreak(k, camera.position.z + 5);
 
+  /* ================================================================ */
+  /* Per-station object sets                                           */
+  /* ================================================================ */
+  const stationSets: StationSet[] = [];
+  const registerSet = (set: StationSet) => {
+    for (const m of set.mats) m.userData.base = m.opacity;
+    set.group.visible = false;
+    scene.add(set.group);
+    stationSets.push(set);
+  };
+
+  let beat = 0;
+
+  /* ---- 01 BOOT: giant terminal hologram ahead of the camera ---- */
+  {
+    const g = new THREE.Group();
+    g.position.set(0.5, 1.2, -13); // camera starts at (0,0.4,8) looking down -z
+    const mats: FadeMat[] = [];
+
+    /* frame + faint glass body */
+    const frameMat = fadeMat(
+      new THREE.LineBasicMaterial(),
+      0.55,
+      ACID,
+    );
+    g.add(new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(15, 9)), frameMat));
+    mats.push(frameMat);
+    const glassMat = fadeMat(new THREE.MeshBasicMaterial(), 0.035, ACID);
+    g.add(new THREE.Mesh(new THREE.PlaneGeometry(15, 9), glassMat));
+    mats.push(glassMat);
+
+    /* scanlines: thin horizontal lines drifting slowly downward */
+    const SCAN = 15;
+    const scanPos = new Float32Array(SCAN * 6);
+    for (let k = 0; k < SCAN; k++) {
+      const y = -4.2 + k * 0.6;
+      scanPos.set([-7.2, y, 0.02, 7.2, y, 0.02], k * 6);
+    }
+    const scanGeo = new THREE.BufferGeometry();
+    scanGeo.setAttribute('position', new THREE.BufferAttribute(scanPos, 3));
+    const scanMat = fadeMat(new THREE.LineBasicMaterial(), 0.16, ACID);
+    const scanlines = new THREE.LineSegments(scanGeo, scanMat);
+    g.add(scanlines);
+    mats.push(scanMat);
+
+    /* fake text lines near the top-left, like typed output */
+    const textSegs: number[] = [];
+    const widths = [5.2, 3.4, 6.1, 2.2, 4.6, 3.0];
+    widths.forEach((w, k) => {
+      const y = 3.4 - k * 0.85;
+      textSegs.push(-6.6, y, 0.03, -6.6 + w, y, 0.03);
+    });
+    const textGeo = new THREE.BufferGeometry();
+    textGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(textSegs), 3));
+    const textMat = fadeMat(new THREE.LineBasicMaterial(), 0.4, ACID);
+    g.add(new THREE.LineSegments(textGeo, textMat));
+    mats.push(textMat);
+
+    /* blinking cursor block (opacity driven in tick, not by fade loop) */
+    const cursorMat = fadeMat(new THREE.MeshBasicMaterial(), 0.9, ACID);
+    const cursor = new THREE.Mesh(new THREE.PlaneGeometry(0.55, 0.95), cursorMat);
+    cursor.position.set(-6.3, 3.4 - widths.length * 0.85, 0.04);
+    g.add(cursor);
+
+    registerSet({
+      i: 0,
+      group: g,
+      mats,
+      tick: (fade, wdt, t) => {
+        scanlines.position.y = -((t * 0.22) % 0.6);
+        cursorMat.opacity = (Math.sin(t * 4.2) > -0.2 ? 0.9 : 0.04) * fade;
+      },
+    });
+  }
+
+  /* ---- 02 PROOF: data towers, tallest = the 67% stat ---- */
+  {
+    const g = new THREE.Group();
+    const mats: FadeMat[] = [];
+    const heights = [4.2, 8.2, 2.4, 4.8, 3.2]; // tallest: -67% Angebotslaufzeit
+    const towerMats: THREE.LineBasicMaterial[] = [];
+    const xs = [-10.5, -5.5, 0.5, 5.5, 9.5];
+    const zs = [-48, -43.5, -52, -44, -49.5];
+    heights.forEach((h, k) => {
+      const geo = new THREE.EdgesGeometry(new THREE.BoxGeometry(2.1, h, 2.1));
+      const mat = fadeMat(new THREE.LineBasicMaterial(), 0.75, ACID);
+      const tower = new THREE.LineSegments(geo, mat);
+      tower.position.set(xs[k], -12 + h / 2, zs[k]);
+      g.add(tower);
+      towerMats.push(mat);
+      const fillMat = fadeMat(new THREE.MeshBasicMaterial(), 0.05, ACID);
+      const fill = new THREE.Mesh(new THREE.BoxGeometry(2.06, h - 0.06, 2.06), fillMat);
+      fill.position.copy(tower.position);
+      g.add(fill);
+      mats.push(fillMat);
+    });
+    registerSet({
+      i: 1,
+      group: g,
+      mats: [...mats, ...towerMats],
+      tick: (fade, wdt, t, dist) => {
+        /* towers ignite one after another as the camera closes in */
+        const approach = THREE.MathUtils.clamp(1.5 - dist, 0, 1.5);
+        towerMats.forEach((m, k) => {
+          const ignite = THREE.MathUtils.smoothstep(approach * 1.6 - k * 0.18, 0, 1);
+          m.opacity = (0.2 + 0.65 * ignite) * fade * (0.9 + 0.1 * Math.sin(t * 2 + k));
+        });
+      },
+    });
+  }
+
+  /* ---- 03 LOG: commit-node timeline strung along the flight path ---- */
+  {
+    const g = new THREE.Group();
+    const mats: FadeMat[] = [];
+    const nodes: THREE.Mesh<THREE.TorusGeometry, THREE.MeshBasicMaterial>[] = [];
+
+    /* bright path line through the station's p-range */
+    const pathPts: THREE.Vector3[] = [];
+    for (let k = 0; k <= 40; k++) pathPts.push(posCurve.getPoint(0.245 + (k / 40) * 0.19));
+    const pathMat = fadeMat(new THREE.LineBasicMaterial(), 0.5, ACID);
+    g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pathPts), pathMat));
+    mats.push(pathMat);
+
+    /* 5 hexagonal commit nodes: Bundeswehr → KAM → DHBW → MyBriem → BizOps */
+    const dotPos = new Float32Array(5 * 3);
+    for (let k = 0; k < 5; k++) {
+      const pk = 0.25 + k * 0.042;
+      const pos = posCurve.getPoint(pk);
+      pos.x += k % 2 === 0 ? 2.4 : -2.4;
+      pos.y += 0.7;
+      const mat = fadeMat(new THREE.MeshBasicMaterial(), 0.85, ACID);
+      const node = new THREE.Mesh(new THREE.TorusGeometry(1.05, 0.07, 4, 6), mat);
+      node.position.copy(pos);
+      const tan = posCurve.getTangent(pk);
+      node.lookAt(pos.clone().add(tan));
+      g.add(node);
+      nodes.push(node);
+      mats.push(mat);
+      dotPos.set([pos.x, pos.y, pos.z], k * 3);
+    }
+    const dotGeo = new THREE.BufferGeometry();
+    dotGeo.setAttribute('position', new THREE.BufferAttribute(dotPos, 3));
+    const dotMat = fadeMat(new THREE.PointsMaterial({ size: 0.5 }), 0.95, ACID);
+    g.add(new THREE.Points(dotGeo, dotMat));
+    mats.push(dotMat);
+
+    registerSet({
+      i: 2,
+      group: g,
+      mats,
+      tick: (fade, wdt, t) => {
+        nodes.forEach((n, k) => {
+          n.scale.setScalar(1 + 0.1 * Math.sin(t * 2.2 + k * 1.15));
+        });
+      },
+    });
+  }
+
+  /* ---- 04 WORK: hologram warehouse — container yard + route arcs ---- */
+  {
+    const g = new THREE.Group();
+    const mats: FadeMat[] = [];
+    const stacks = [
+      new THREE.Vector3(-9, -11, -114),
+      new THREE.Vector3(0, -11, -104),
+      new THREE.Vector3(8.5, -11, -112),
+    ];
+    const boxEdges = new THREE.EdgesGeometry(new THREE.BoxGeometry(3.2, 2.1, 2.2));
+    const contMat = fadeMat(new THREE.LineBasicMaterial(), 0.4, ACID_CYAN);
+    mats.push(contMat);
+    const stackTops: THREE.Vector3[] = [];
+    for (const base of stacks) {
+      for (let cx = 0; cx < 2; cx++) {
+        for (let cy = 0; cy < 3; cy++) {
+          if (cx === 1 && cy === 2) continue; // uneven stacks read as real yards
+          const c = new THREE.LineSegments(boxEdges, contMat);
+          c.position.set(base.x + cx * 3.5, base.y + 1.05 + cy * 2.2, base.z);
+          g.add(c);
+        }
+      }
+      stackTops.push(new THREE.Vector3(base.x + 1.75, base.y + 3 * 2.2 + 1.05, base.z));
+    }
+
+    /* route lines arcing between stack tops, packets riding them */
+    const arcs: THREE.QuadraticBezierCurve3[] = [];
+    const arcPairs: Array<[number, number]> = [
+      [0, 1],
+      [1, 2],
+      [2, 0],
+    ];
+    for (const [ai, bi] of arcPairs) {
+      const a = stackTops[ai];
+      const b = stackTops[bi];
+      const mid = a.clone().lerp(b, 0.5);
+      mid.y += 5.5;
+      const curve = new THREE.QuadraticBezierCurve3(a, mid, b);
+      arcs.push(curve);
+      const arcMat = fadeMat(new THREE.LineBasicMaterial(), 0.45, ACID_CYAN);
+      g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(curve.getPoints(24)), arcMat));
+      mats.push(arcMat);
+    }
+    const WP = 8;
+    const wPackets = Array.from({ length: WP }, (_, k) => ({
+      arc: k % arcs.length,
+      t: Math.random(),
+      speed: 0.25 + Math.random() * 0.3,
+    }));
+    const wPacketPos = new Float32Array(WP * 3);
+    const wPacketGeo = new THREE.BufferGeometry();
+    wPacketGeo.setAttribute('position', new THREE.BufferAttribute(wPacketPos, 3));
+    const wPacketMat = fadeMat(new THREE.PointsMaterial({ size: 0.3 }), 0.85, ACID_CYAN);
+    g.add(new THREE.Points(wPacketGeo, wPacketMat));
+    mats.push(wPacketMat);
+
+    /* faint crane silhouette: two verticals + crossbeam */
+    const cranePos = new Float32Array([
+      13, -11, -118, 13, 0, -118,
+      21, -11, -118, 21, 0, -118,
+      12, 0, -118, 22, 0, -118,
+    ]);
+    const craneGeo = new THREE.BufferGeometry();
+    craneGeo.setAttribute('position', new THREE.BufferAttribute(cranePos, 3));
+    const craneMat = fadeMat(new THREE.LineBasicMaterial(), 0.35, ACID_CYAN);
+    g.add(new THREE.LineSegments(craneGeo, craneMat));
+    mats.push(craneMat);
+
+    const tmpV = new THREE.Vector3();
+    registerSet({
+      i: 3,
+      group: g,
+      mats,
+      tick: (fade, wdt) => {
+        for (let k = 0; k < WP; k++) {
+          const pk = wPackets[k];
+          pk.t += wdt * pk.speed;
+          if (pk.t >= 1) pk.t = 0;
+          arcs[pk.arc].getPoint(pk.t, tmpV);
+          wPacketPos.set([tmpV.x, tmpV.y, tmpV.z], k * 3);
+        }
+        (wPacketGeo.getAttribute('position') as THREE.BufferAttribute).needsUpdate = true;
+      },
+    });
+  }
+
+  /* ---- 05 STACK: skill constellation — particle spheres in orbit ---- */
+  {
+    const g = new THREE.Group();
+    const mats: FadeMat[] = [];
+    const center = new THREE.Vector3(0, 0.5, -SEG * 4);
+    const pivots: Array<{ g: THREE.Group; speed: number }> = [];
+    const SPHERES = 7;
+    for (let k = 0; k < SPHERES; k++) {
+      const radius = 0.55 + (k / SPHERES) * 1.15;
+      const count = 70;
+      const pos = new Float32Array(count * 3);
+      for (let j = 0; j < count; j++) {
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos(2 * Math.random() - 1);
+        pos[j * 3] = radius * Math.sin(phi) * Math.cos(theta);
+        pos[j * 3 + 1] = radius * Math.cos(phi);
+        pos[j * 3 + 2] = radius * Math.sin(phi) * Math.sin(theta);
+      }
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      const mat = fadeMat(
+        new THREE.PointsMaterial({ size: 0.09 }),
+        0.8,
+        k % 2 === 0 ? ACID : PAPER,
+      );
+      mats.push(mat);
+      const pivot = new THREE.Group();
+      pivot.position.copy(center);
+      pivot.rotation.z = (k / SPHERES) * 1.1 - 0.5;
+      pivot.rotation.x = (k % 3) * 0.35;
+      const holder = new THREE.Group();
+      const orbitR = 3.2 + k * 1.05;
+      holder.position.set(orbitR, 0, 0);
+      holder.add(new THREE.Points(geo, mat));
+      holder.rotation.y = Math.random() * Math.PI;
+      pivot.add(holder);
+      pivot.rotation.y = Math.random() * Math.PI * 2;
+      g.add(pivot);
+      pivots.push({ g: pivot, speed: (k % 2 === 0 ? 1 : -1) * (0.06 + k * 0.014) });
+    }
+    registerSet({
+      i: 4,
+      group: g,
+      mats,
+      tick: (fade, wdt) => {
+        for (const p of pivots) p.g.rotation.y += wdt * p.speed;
+      },
+    });
+  }
+
+  /* ---- 06 BEYOND: expanding soundwave rings (beat-synced) ---- */
+  {
+    const g = new THREE.Group();
+    const mats: FadeMat[] = [];
+    const RINGS = 6;
+    const rings: THREE.Mesh<THREE.TorusGeometry, THREE.MeshBasicMaterial>[] = [];
+    const ringCenter = new THREE.Vector3(0, -4, -SEG * 5 - 8);
+    for (let k = 0; k < RINGS; k++) {
+      const mat = fadeMat(new THREE.MeshBasicMaterial(), 0.55, WARM);
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(1, 0.035, 6, 48), mat);
+      ring.position.copy(ringCenter);
+      ring.rotation.x = -Math.PI / 2;
+      g.add(ring);
+      rings.push(ring);
+      mats.push(mat);
+    }
+    registerSet({
+      i: 5,
+      group: g,
+      mats,
+      tick: (fade, wdt, t) => {
+        /* constant slow pulse; the audio kick (beat) rides on top */
+        rings.forEach((r, k) => {
+          const s = (t * 0.22 + k / RINGS) % 1;
+          const scale = 1 + s * 15;
+          r.scale.set(scale, scale, 1);
+          r.material.opacity = (1 - s) * (0.5 + beat * 0.5) * fade;
+        });
+      },
+    });
+  }
+
+  /* ---- 07 DOCK: hexagonal landing platform + beacon + guides ---- */
+  {
+    const g = new THREE.Group();
+    const mats: FadeMat[] = [];
+    const deck = new THREE.Vector3(0, -4.5, -SEG * 6 - 18);
+
+    const rimMat = fadeMat(new THREE.LineBasicMaterial(), 0.8, WARM);
+    g.add(
+      (() => {
+        const rim = new THREE.LineSegments(
+          new THREE.EdgesGeometry(new THREE.CylinderGeometry(7, 7, 0.4, 6)),
+          rimMat,
+        );
+        rim.position.copy(deck);
+        return rim;
+      })(),
+    );
+    mats.push(rimMat);
+    const topMat = fadeMat(new THREE.MeshBasicMaterial({ wireframe: true }), 0.22, WARM);
+    const top = new THREE.Mesh(new THREE.CircleGeometry(6.9, 6), topMat);
+    top.rotation.x = -Math.PI / 2;
+    top.position.set(deck.x, deck.y + 0.22, deck.z);
+    g.add(top);
+    mats.push(topMat);
+    const innerMat = fadeMat(new THREE.MeshBasicMaterial(), 0.5, WARM);
+    const inner = new THREE.Mesh(new THREE.TorusGeometry(3.6, 0.05, 4, 6), innerMat);
+    inner.rotation.x = -Math.PI / 2;
+    inner.position.set(deck.x, deck.y + 0.3, deck.z);
+    g.add(inner);
+    mats.push(innerMat);
+
+    /* beacon pole + blinking light (light opacity driven in tick) */
+    const polePos = new Float32Array([deck.x, deck.y + 0.2, deck.z, deck.x, deck.y + 3.2, deck.z]);
+    const poleGeo = new THREE.BufferGeometry();
+    poleGeo.setAttribute('position', new THREE.BufferAttribute(polePos, 3));
+    const poleMat = fadeMat(new THREE.LineBasicMaterial(), 0.5, WARM);
+    g.add(new THREE.LineSegments(poleGeo, poleMat));
+    mats.push(poleMat);
+    const beaconMat = fadeMat(new THREE.MeshBasicMaterial(), 1, WARM);
+    const beacon = new THREE.Mesh(new THREE.OctahedronGeometry(0.4, 0), beaconMat);
+    beacon.position.set(deck.x, deck.y + 3.4, deck.z);
+    g.add(beacon);
+
+    /* approach guides: two converging rows of dash segments */
+    const guideSegs: number[] = [];
+    for (let k = 0; k < 6; k++) {
+      const z = deck.z + 14 - k * 2.3;
+      const w = 6.2 - k * 0.8;
+      guideSegs.push(-w, deck.y + 0.6, z, -w + 1.3, deck.y + 0.6, z);
+      guideSegs.push(w - 1.3, deck.y + 0.6, z, w, deck.y + 0.6, z);
+    }
+    const guideGeo = new THREE.BufferGeometry();
+    guideGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(guideSegs), 3));
+    const guideMat = fadeMat(new THREE.LineBasicMaterial(), 0.5, WARM);
+    g.add(new THREE.LineSegments(guideGeo, guideMat));
+    mats.push(guideMat);
+
+    registerSet({
+      i: 6,
+      group: g,
+      mats,
+      tick: (fade, wdt, t) => {
+        const blink = Math.sin(t * 3.1) > 0 ? 1 : 0.08;
+        beaconMat.opacity = blink * fade;
+        beacon.scale.setScalar(1 + blink * 0.25);
+        guideMat.opacity = (0.35 + 0.2 * Math.sin(t * 2.4)) * fade;
+      },
+    });
+  }
+
   /* ---- sizing ---- */
   const dpr = Math.min(window.devicePixelRatio || 1, 1.75);
   const resize = () => {
@@ -301,12 +735,14 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
   resize();
   window.addEventListener('resize', resize);
 
-  let beat = 0;
   let prevFov = BASE_FOV;
 
   const tmpPos = new THREE.Vector3();
   const tmpLook = new THREE.Vector3();
   const tmpTan = new THREE.Vector3();
+  const tmpAccent = new THREE.Color();
+  const tmpFog = new THREE.Color();
+  const tmpTint = new THREE.Color();
 
   return {
     camera,
@@ -315,6 +751,30 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
     },
     update(p, transit, dt, now) {
       const t = now * 0.001;
+
+      /* ---- theme morph: blend themes[i] → themes[i+1] from progress ---- */
+      const f = THREE.MathUtils.clamp(p, 0, 1) * (STATIONS - 1);
+      const seg = Math.min(STATIONS - 2, Math.floor(f));
+      const lt = THREE.MathUtils.smoothstep(f - seg, 0, 1);
+      const themeA = themes[seg];
+      const themeB = themes[seg + 1];
+      tmpAccent.copy(themeA.accent).lerp(themeB.accent, lt);
+      tmpFog.copy(themeA.fog).lerp(themeB.fog, lt);
+      tmpTint.copy(themeA.tint).lerp(themeB.tint, lt);
+      const worldSpeed = themeA.speed + (themeB.speed - themeA.speed) * lt;
+      const wdt = dt * worldSpeed;
+
+      fog.color.copy(tmpFog);
+      fog.density = themeA.fogDensity + (themeB.fogDensity - themeA.fogDensity) * lt;
+      renderer.setClearColor(tmpFog, 1);
+      starMat.color.copy(tmpTint);
+      nodeMat.color.copy(tmpTint);
+      gridMat.color.copy(tmpTint);
+      gridCeilMat.color.copy(tmpTint);
+      edgeMat.color.copy(PAPER_DIM).multiply(tmpTint);
+      streakMat.color.copy(tmpAccent);
+      packetMat.color.copy(tmpAccent);
+      for (const m of acidWireMats) m.color.copy(tmpAccent);
 
       /* camera along the spline */
       posCurve.getPoint(p, tmpPos);
@@ -333,11 +793,11 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
       }
 
       /* network centerpiece */
-      netGroup.rotation.y += dt * 0.07;
+      netGroup.rotation.y += wdt * 0.07;
       netGroup.position.y = 1.5 + Math.sin(t * 0.5) * 0.4;
       for (let k = 0; k < PACKET_COUNT; k++) {
         const pk = packets[k];
-        pk.t += dt * pk.speed;
+        pk.t += wdt * pk.speed;
         if (pk.t >= 1) {
           pk.edge = (Math.random() * edges.length) | 0;
           pk.t = 0;
@@ -352,17 +812,30 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
 
       /* wireframes drift */
       for (const m of wireframes) {
-        m.rotation.x += dt * m.userData.spin;
-        m.rotation.y += dt * m.userData.spin * 0.7;
-        m.position.y += Math.sin(t * 0.6 + m.userData.bob) * dt * 0.15;
+        m.rotation.x += wdt * m.userData.spin;
+        m.rotation.y += wdt * m.userData.spin * 0.7;
+        m.position.y += Math.sin(t * 0.6 + m.userData.bob) * wdt * 0.15;
       }
 
       /* gates glow with transit + beat */
       for (const gate of gates) {
         gate.material.opacity = 0.22 + transit * 0.4 + beat * 0.3;
-        gate.rotation.z += dt * 0.15;
+        gate.rotation.z += wdt * 0.15;
         const s = 1 + beat * 0.03;
         gate.scale.setScalar(s);
+      }
+
+      /* per-station sets: proximity fade + ticks */
+      for (const s of stationSets) {
+        const dist = Math.abs(f - s.i);
+        const fade = 1 - THREE.MathUtils.smoothstep(dist, 0.55, 1.5);
+        if (fade <= 0.004) {
+          s.group.visible = false;
+          continue;
+        }
+        s.group.visible = true;
+        for (const m of s.mats) m.opacity = (m.userData.base as number) * fade;
+        s.tick?.(fade, wdt, t, dist);
       }
 
       /* warp streaks: dense & fast only during transits */
@@ -371,7 +844,7 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
         const stretch = 0.4 + transit * 7;
         for (let k = 0; k < STREAKS; k++) {
           const s = streakSeed[k];
-          s.z += dt * s.speed * (6 + transit * 90);
+          s.z += wdt * s.speed * (6 + transit * 90);
           if (s.z > camera.position.z + 8) seedStreak(k, camera.position.z - 6);
           streakPos[k * 6] = s.x;
           streakPos[k * 6 + 1] = s.y;
