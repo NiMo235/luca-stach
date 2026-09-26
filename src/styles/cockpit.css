@@ -1,0 +1,370 @@
+/* ------------------------------------------------------------------ */
+/* STACH://FLIGHTDECK — cockpit mode                                   */
+/* Everything in this file is scoped under `html.flightdeck`, which    */
+/* flightdeck.ts adds ONLY when all gates pass (fine pointer, wide     */
+/* viewport, no reduced motion, WebGL ok, JS on). Without the class    */
+/* the page renders exactly as the classic stacked layout.             */
+/* ------------------------------------------------------------------ */
+
+/* ---- corridor: the fixed panels leave no document flow, so this     */
+/* ---- spacer supplies the scrollable "flight corridor" height        */
+#flight-corridor,
+#flight-canvas,
+#flight-flash,
+#flight-hud {
+  display: none;
+}
+
+.flightdeck {
+  scroll-behavior: auto;
+}
+
+.flightdeck #flight-corridor {
+  display: block;
+  height: 980vh; /* 7 stations × 140vh */
+  pointer-events: none;
+}
+
+/* ---- world canvas replaces the plasma shader background ---- */
+.flightdeck #bg-shader,
+.flightdeck [data-hero-3d],
+.flightdeck #site-nav,
+.flightdeck .ticker {
+  display: none;
+}
+
+.flightdeck #flight-canvas {
+  display: block;
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* ---- chromatic transit flash (cheap fake: edge-fringe gradient) ---- */
+.flightdeck #flight-flash {
+  display: block;
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  pointer-events: none;
+  opacity: 0;
+  box-shadow:
+    inset 60px 0 120px -40px rgba(255, 30, 80, 0.5),
+    inset -60px 0 120px -40px rgba(60, 220, 255, 0.45),
+    inset 0 0 180px rgba(180, 255, 57, 0.18);
+}
+.flightdeck #flight-flash.flash {
+  animation: chroma-flash 0.22s ease-out;
+}
+@keyframes chroma-flash {
+  0% {
+    opacity: 0.95;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ---- station panels ------------------------------------------------ */
+.flightdeck :is(#top, #proof, #log, #work, #stack, #beyond, #contact) {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: none;
+  border-top: 0;
+  overflow: hidden;
+}
+.flightdeck :is(#top, #proof, #log, #work, #stack, #beyond, #contact).station-active {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4.5rem 2rem 3.5rem;
+}
+
+/* glass holo panel on the section's content container (skip
+   decorative aria-hidden glow divs) */
+.flightdeck
+  :is(#top, #proof, #log, #work, #stack, #beyond, #contact).station-active
+  > div:not([aria-hidden='true']) {
+  position: relative;
+  width: min(72rem, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: none;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--color-acid) 35%, transparent) transparent;
+  background: color-mix(in srgb, var(--color-ink) 58%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid color-mix(in srgb, var(--color-acid) 10%, transparent);
+  padding: clamp(1.5rem, 3.5vh, 3rem) clamp(1.5rem, 3vw, 3rem);
+}
+
+/* subtle inner scanline gradient */
+.flightdeck
+  :is(#top, #proof, #log, #work, #stack, #beyond, #contact).station-active
+  > div:not([aria-hidden='true'])::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 3px,
+    rgba(180, 255, 57, 0.014) 3px,
+    rgba(180, 255, 57, 0.014) 4px
+  );
+}
+
+/* corner ticks */
+.flightdeck
+  :is(#top, #proof, #log, #work, #stack, #beyond, #contact).station-active
+  > div:not([aria-hidden='true'])::after {
+  content: '';
+  position: absolute;
+  inset: 7px;
+  pointer-events: none;
+  background:
+    linear-gradient(to right, var(--color-acid) 10px, transparent 10px) top left / 10px 1px,
+    linear-gradient(to bottom, var(--color-acid) 10px, transparent 10px) top left / 1px 10px,
+    linear-gradient(to left, var(--color-acid) 10px, transparent 10px) top right / 10px 1px,
+    linear-gradient(to bottom, var(--color-acid) 10px, transparent 10px) top right / 1px 10px,
+    linear-gradient(to right, var(--color-acid) 10px, transparent 10px) bottom left / 10px 1px,
+    linear-gradient(to top, var(--color-acid) 10px, transparent 10px) bottom left / 1px 10px,
+    linear-gradient(to left, var(--color-acid) 10px, transparent 10px) bottom right / 10px 1px,
+    linear-gradient(to top, var(--color-acid) 10px, transparent 10px) bottom right / 1px 10px;
+  background-repeat: no-repeat;
+  opacity: 0.55;
+}
+
+/* ---- hologram materialize: clip wipe + flicker + rgb split --------- */
+.flightdeck .station-active.panel-in > div:not([aria-hidden='true']) {
+  animation:
+    holo-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) both,
+    holo-rgb 0.6s steps(2, jump-none) both;
+}
+@keyframes holo-in {
+  0% {
+    clip-path: inset(0 0 96% 0);
+    opacity: 0;
+    filter: brightness(2.4);
+  }
+  18% {
+    clip-path: inset(0 0 42% 0);
+    opacity: 1;
+  }
+  24% {
+    clip-path: inset(0 0 62% 0);
+  }
+  32% {
+    clip-path: inset(0 0 30% 0);
+  }
+  55% {
+    clip-path: inset(0 0 6% 0);
+    filter: brightness(1.4);
+  }
+  100% {
+    clip-path: inset(0 0 0 0);
+    opacity: 1;
+    filter: brightness(1);
+  }
+}
+@keyframes holo-rgb {
+  0%,
+  40% {
+    text-shadow:
+      2px 0 rgba(255, 30, 80, 0.55),
+      -2px 0 rgba(60, 220, 255, 0.5);
+  }
+  41%,
+  100% {
+    text-shadow: none;
+  }
+}
+
+/* ---- HUD ------------------------------------------------------------ */
+.flightdeck #flight-hud {
+  display: block;
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  pointer-events: none;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--color-dim);
+  text-transform: uppercase;
+}
+#flight-hud .hud-corner {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border: 1px solid color-mix(in srgb, var(--color-acid) 45%, transparent);
+}
+#flight-hud .hud-corner.tl {
+  top: 12px;
+  left: 12px;
+  border-right: 0;
+  border-bottom: 0;
+}
+#flight-hud .hud-corner.tr {
+  top: 12px;
+  right: 12px;
+  border-left: 0;
+  border-bottom: 0;
+}
+#flight-hud .hud-corner.bl {
+  bottom: 12px;
+  left: 12px;
+  border-right: 0;
+  border-top: 0;
+}
+#flight-hud .hud-corner.br {
+  bottom: 12px;
+  right: 12px;
+  border-left: 0;
+  border-top: 0;
+}
+
+#flight-hud .hud-brand {
+  position: absolute;
+  top: 18px;
+  left: 40px;
+  color: var(--color-acid);
+  text-shadow: 0 0 14px color-mix(in srgb, var(--color-acid) 50%, transparent);
+  font-weight: 700;
+}
+
+#flight-hud .hud-lang {
+  position: absolute;
+  top: 16px;
+  right: 40px;
+  pointer-events: auto;
+  border: 1px solid color-mix(in srgb, var(--color-paper) 20%, transparent);
+  padding: 4px 10px;
+  color: var(--color-paper);
+  text-decoration: none;
+  transition:
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+#flight-hud .hud-lang:hover {
+  border-color: var(--color-acid);
+  color: var(--color-acid);
+}
+
+/* station selector — vertical, left edge, vertically centered */
+#flight-hud .hud-stations {
+  position: absolute;
+  left: 26px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+#flight-hud .hud-stations-label {
+  margin-bottom: 4px;
+  color: var(--color-faint);
+}
+#flight-hud .hud-station {
+  pointer-events: auto;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  background: none;
+  border: 0;
+  padding: 2px 0;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: var(--color-dim);
+  text-align: left;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+#flight-hud .hud-station::before {
+  content: '';
+  width: 8px;
+  height: 1px;
+  background: var(--color-faint);
+  transition:
+    width 0.25s ease,
+    background 0.2s ease;
+}
+#flight-hud .hud-station:hover {
+  color: var(--color-paper);
+}
+#flight-hud .hud-station.is-active {
+  color: var(--color-acid);
+  text-shadow: 0 0 12px color-mix(in srgb, var(--color-acid) 55%, transparent);
+}
+#flight-hud .hud-station.is-active::before {
+  width: 18px;
+  background: var(--color-acid);
+}
+
+/* telemetry — bottom-left */
+#flight-hud .hud-telemetry {
+  position: absolute;
+  left: 40px;
+  bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+#flight-hud .hud-telemetry b {
+  color: var(--color-paper);
+  font-weight: 500;
+}
+#flight-hud .hud-telemetry .hud-val {
+  color: var(--color-acid);
+}
+
+/* audio — bottom-right */
+#flight-hud .hud-audio {
+  position: absolute;
+  right: 40px;
+  bottom: 20px;
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+#flight-hud .hud-eq {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 16px;
+}
+#flight-hud .hud-eq i {
+  width: 3px;
+  height: calc(2px + var(--beat, 0) * 12px * var(--k, 1));
+  background: color-mix(in srgb, var(--color-acid) 75%, transparent);
+  transition: height 0.09s linear;
+}
+#flight-hud .hud-audio-toggle {
+  pointer-events: auto;
+  background: none;
+  border: 1px solid color-mix(in srgb, var(--color-paper) 20%, transparent);
+  padding: 4px 10px;
+  font: inherit;
+  letter-spacing: inherit;
+  color: var(--color-paper);
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+#flight-hud .hud-audio-toggle:hover {
+  border-color: var(--color-acid);
+  color: var(--color-acid);
+}
+#flight-hud .hud-audio-toggle[aria-pressed='true'] {
+  border-color: var(--color-acid);
+  color: var(--color-acid);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--color-acid) 30%, transparent);
+}

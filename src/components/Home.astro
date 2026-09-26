@@ -8,6 +8,12 @@ import Work from './Work.astro';
 import Stack from './Stack.astro';
 import Beyond from './Beyond.astro';
 import Contact from './Contact.astro';
+import FlightDeck from './FlightDeck.astro';
+
+interface HudStation {
+  id: string;
+  label: string;
+}
 
 interface Dict {
   nav: {
@@ -23,6 +29,17 @@ interface Dict {
   hero: Record<string, any>;
   proof: Record<string, any>;
   ticker: { items: string[] };
+  hud: {
+    brand: string;
+    scrollLabel: string;
+    velocityLabel: string;
+    stationLabel: string;
+    posLabel: string;
+    audioOff: string;
+    audioOn: string;
+    stationsLabel: string;
+    stations: HudStation[];
+  };
   log: Record<string, any>;
   work: Record<string, any>;
   stack: Record<string, any>;
@@ -58,3 +75,4 @@ const navItems = [
   <Beyond {...t.beyond} />
 </main>
 <Contact {...t.contact} />
+<FlightDeck hud={t.hud} langLabel={t.nav.langLabel} langHref={t.nav.langHref} />

@@ -54,7 +54,27 @@
       "ROI NACHWEISBAR",
       "BUSINESS CASES",
       "DIGITALISIERUNG",
-      "WORKFLOW-AUTOMATION"
+      "WORKFLOW-AUTOMATION",
+      "FLIGHTDECK ONLINE"
+    ]
+  },
+  "hud": {
+    "brand": "STACH://FLIGHTDECK",
+    "scrollLabel": "SCROLL",
+    "velocityLabel": "VELOCITY",
+    "stationLabel": "STATION",
+    "posLabel": "POS",
+    "audioOff": "AUDIO: OFF",
+    "audioOn": "AUDIO: ON",
+    "stationsLabel": "stations",
+    "stations": [
+      { "id": "top", "label": "BOOT" },
+      { "id": "proof", "label": "PROOF" },
+      { "id": "log", "label": "LOG" },
+      { "id": "work", "label": "WORK" },
+      { "id": "stack", "label": "STACK" },
+      { "id": "beyond", "label": "BEYOND" },
+      { "id": "contact", "label": "DOCK" }
     ]
   },
   "log": {

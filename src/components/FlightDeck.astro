@@ -1,0 +1,75 @@
+---
+interface HudStation {
+  id: string;
+  label: string;
+}
+
+interface Props {
+  hud: {
+    brand: string;
+    scrollLabel: string;
+    velocityLabel: string;
+    stationLabel: string;
+    posLabel: string;
+    audioOff: string;
+    audioOn: string;
+    stationsLabel: string;
+    stations: HudStation[];
+  };
+  langLabel: string;
+  langHref: string;
+}
+
+const { hud, langLabel, langHref } = Astro.props;
+const langUrl = `${import.meta.env.BASE_URL}${langHref.replace(/^\//, '')}`;
+---
+
+<canvas id="flight-canvas" aria-hidden="true"></canvas>
+<div id="flight-flash" aria-hidden="true"></div>
+
+<div id="flight-hud">
+  <span class="hud-corner tl" aria-hidden="true"></span>
+  <span class="hud-corner tr" aria-hidden="true"></span>
+  <span class="hud-corner bl" aria-hidden="true"></span>
+  <span class="hud-corner br" aria-hidden="true"></span>
+
+  <p class="hud-brand">{hud.brand}</p>
+  <a class="hud-lang" href={langUrl} hreflang={langLabel === 'EN' ? 'en' : 'de'}>{langLabel}</a>
+
+  <nav class="hud-stations" aria-label={hud.stationsLabel}>
+    <span class="hud-stations-label" aria-hidden="true">// {hud.stationsLabel}</span>
+    {
+      hud.stations.map((s, i) => (
+        <button type="button" class="hud-station" data-fly={s.id}>
+          <span aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
+          {s.label}
+        </button>
+      ))
+    }
+  </nav>
+
+  <div class="hud-telemetry" aria-hidden="true">
+    <span>{hud.scrollLabel} <b class="hud-val" data-hud-scroll>000%</b></span>
+    <span>{hud.velocityLabel} <b class="hud-val" data-hud-vel>0.0c</b></span>
+    <span>{hud.stationLabel} <b class="hud-val" data-hud-station>01/07</b></span>
+    <span>{hud.posLabel} <b class="hud-val" data-hud-pos>X+000.0 Y+000.0 Z+000.0</b></span>
+  </div>
+
+  <div class="hud-audio">
+    <span class="hud-eq" aria-hidden="true">
+      <i style="--k:0.6"></i><i style="--k:1"></i><i style="--k:0.75"></i><i style="--k:0.45"></i><i style="--k:0.9"></i>
+    </span>
+    <button
+      type="button"
+      class="hud-audio-toggle"
+      data-audio-toggle
+      data-label-off={hud.audioOff}
+      data-label-on={hud.audioOn}
+      aria-pressed="false"
+    >
+      {hud.audioOff}
+    </button>
+  </div>
+</div>
+
+<div id="flight-corridor" aria-hidden="true"></div>
