@@ -558,3 +558,147 @@
   color: var(--color-acid);
   box-shadow: 0 0 14px color-mix(in srgb, var(--color-acid) 30%, transparent);
 }
+
+/* ---- minimap / floor plan (T-103) ------------------------------------
+   bottom-right, above the audio cluster. The BEYOND panel (right-low)
+   is raised far enough that the open map never covers a panel. */
+#halle-map {
+  display: none;
+}
+.flightdeck #halle-map {
+  display: block;
+  position: fixed;
+  right: 24px;
+  bottom: 58px;
+  width: 244px;
+  z-index: 20;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+#halle-map .halle-map-toggle {
+  pointer-events: auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  background: color-mix(in srgb, var(--color-ink) 78%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-paper) 20%, transparent);
+  padding: 4px 8px;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: var(--color-paper);
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+#halle-map .halle-map-toggle:hover {
+  border-color: var(--color-acid);
+  color: var(--color-acid);
+}
+#halle-map .halle-map-chevron {
+  width: 7px;
+  height: 7px;
+  border-right: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform 0.2s ease;
+}
+#halle-map[data-collapsed='true'] .halle-map-chevron {
+  transform: rotate(-135deg);
+}
+#halle-map .halle-map-body {
+  border: 1px solid color-mix(in srgb, var(--color-paper) 20%, transparent);
+  border-top: 0;
+  background: color-mix(in srgb, var(--color-ink) 78%, transparent);
+}
+#halle-map[data-collapsed='true'] .halle-map-body {
+  display: none;
+}
+#halle-map svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+#halle-map .mm-yard {
+  fill: color-mix(in srgb, var(--color-paper) 4%, transparent);
+}
+#halle-map .mm-hall {
+  fill: color-mix(in srgb, var(--color-paper) 7%, transparent);
+  stroke: color-mix(in srgb, var(--color-paper) 35%, transparent);
+  stroke-width: 0.6;
+}
+#halle-map .mm-rack {
+  fill: color-mix(in srgb, var(--color-paper) 16%, transparent);
+}
+#halle-map .mm-loop {
+  fill: none;
+  stroke: color-mix(in srgb, var(--color-acid) 40%, transparent);
+  stroke-width: 0.5;
+  stroke-dasharray: 2 1.4;
+}
+#halle-map .mm-conv {
+  fill: none;
+  stroke: color-mix(in srgb, var(--color-cyan, #7dffd8) 45%, transparent);
+  stroke-width: 0.5;
+}
+#halle-map .mm-cage {
+  fill: none;
+  stroke: color-mix(in srgb, var(--color-warm) 55%, transparent);
+  stroke-width: 0.5;
+  stroke-dasharray: 1.6 1.2;
+}
+#halle-map .mm-door {
+  fill: color-mix(in srgb, var(--color-paper) 30%, transparent);
+}
+#halle-map .mm-zone {
+  cursor: pointer;
+  outline: none;
+}
+#halle-map .mm-zone-rect {
+  fill: color-mix(in srgb, var(--color-acid) 7%, transparent);
+  stroke: color-mix(in srgb, var(--color-acid) 30%, transparent);
+  stroke-width: 0.4;
+  transition:
+    fill 0.2s ease,
+    stroke 0.2s ease;
+}
+#halle-map .mm-zone:hover .mm-zone-rect,
+#halle-map .mm-zone:focus-visible .mm-zone-rect {
+  fill: color-mix(in srgb, var(--color-acid) 22%, transparent);
+  stroke: var(--color-acid);
+}
+#halle-map .mm-zone.is-active .mm-zone-rect {
+  fill: color-mix(in srgb, var(--color-acid) 16%, transparent);
+  stroke: color-mix(in srgb, var(--color-acid) 70%, transparent);
+}
+#halle-map .mm-zone-label {
+  fill: color-mix(in srgb, var(--color-paper) 65%, transparent);
+  font-family: var(--font-mono);
+  font-size: 5.5px;
+  letter-spacing: 0.08em;
+  pointer-events: none;
+}
+#halle-map .mm-zone.is-active .mm-zone-label {
+  fill: var(--color-acid);
+}
+#halle-map .mm-agv {
+  pointer-events: none;
+}
+#halle-map .mm-truck {
+  fill: color-mix(in srgb, var(--color-warm) 65%, transparent);
+  pointer-events: none;
+}
+#halle-map .mm-cam {
+  fill: var(--color-paper);
+  stroke: var(--color-ink);
+  stroke-width: 0.5;
+  pointer-events: none;
+}
+/* BEYOND is the right-low panel: raise it clear of the open map */
+.flightdeck #beyond:is(.station-active, .panel-out) {
+  padding-bottom: 15rem;
+}

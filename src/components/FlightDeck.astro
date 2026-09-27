@@ -24,6 +24,10 @@ interface Props {
     tcSimTransit: string;
     tcSimDwell: string;
     tcSimModel: string;
+    mapTitle: string;
+    mapLabel: string;
+    mapToggle: string;
+    mapFly: string;
   };
   langLabel: string;
   langHref: string;
@@ -31,6 +35,32 @@ interface Props {
 
 const { hud, langLabel, langHref } = Astro.props;
 const langUrl = `${import.meta.env.BASE_URL}${langHref.replace(/^\//, '')}`;
+
+/* T-103 minimap geometry — mirrors src/scripts/halle/layout.ts
+   (2 px per meter, hall 120×60 → 240×120, north up; yard strip above).
+   Keep in sync when the hall layout moves. */
+const MX = (x: number) => (x + 60) * 2;
+const rackRows = [-58.3, -52.5, -46.7, -40.9].map((x) => MX(x) - 2.4);
+const doors = [
+  { x: -50, w: 5 },
+  { x: -30, w: 5 },
+  { x: -10, w: 5 },
+  { x: 10, w: 5 },
+  { x: 46, w: 3.2 },
+  { x: 55, w: 3.2 },
+];
+/* clickable zones, station order matches the tour; STACK sits under
+   PROOF on the map, so it is drawn first (PROOF wins the click) */
+const mapZones = [
+  { station: 4, rects: [[192, 64, 44, 52]], lx: 214, ly: 70 }, // STACK mezzanine
+  { station: 2, rects: [[0, 28, 56, 64]], lx: 28, ly: 61 }, // LOG high-bay
+  { station: 3, rects: [[76, 34, 90, 52], [90, 16, 44, 14]], lx: 121, ly: 61 }, // WORK loop + conveyor
+  { station: 0, rects: [[8, 112, 68, 6.8]], lx: 42, ly: 116.4 }, // BOOT gallery
+  { station: 5, rects: [[4, 101, 50, 11]], lx: 29, ly: 108 }, // BEYOND lounge
+  { station: 6, rects: [[8, 0, 24, 22]], lx: 20, ly: 12 }, // DOCK tor 1
+  { station: 1, rects: [[200, 94, 28, 20]], lx: 214, ly: 105 }, // PROOF leitstand
+];
+const stationLabel = (i: number) => hud.stations[i]?.label ?? '';
 ---
 
 <canvas id="flight-canvas" aria-hidden="true"></canvas>
@@ -96,5 +126,53 @@ const langUrl = `${import.meta.env.BASE_URL}${langHref.replace(/^\//, '')}`;
     </button>
   </div>
 </div>
+
+<!-- T-103: minimap / floor plan — bottom right, collapsible. Zone
+     groups are clickable (halle:fly); AGV dots, trucks and the camera
+     wedge are updated live from the hall (minimap.ts). -->
+<nav id="halle-map" class="halle-map" aria-label={hud.mapLabel} data-collapsed="false">
+  <button
+    type="button"
+    class="halle-map-toggle"
+    aria-expanded="true"
+    aria-controls="halle-map-body"
+    aria-label={hud.mapToggle}
+  >
+    <span class="halle-map-title">{hud.mapTitle}</span>
+    <span class="halle-map-chevron" aria-hidden="true"></span>
+  </button>
+  <div class="halle-map-body" id="halle-map-body">
+    <svg viewBox="0 -12 240 134" role="group" aria-label={hud.mapLabel}>
+      <rect class="mm-yard" x="0" y="-12" width="240" height="12"></rect>
+      <rect class="mm-hall" x="0.5" y="0.5" width="239" height="119"></rect>
+      {rackRows.map((x) => <rect class="mm-rack" x={x} y="28" width="4.8" height="64" />)}
+      <rect class="mm-loop" x="76" y="34" width="108" height="52" rx="16"></rect>
+      <rect class="mm-conv" x="90" y="18" width="44" height="12" rx="5"></rect>
+      <rect class="mm-cage" x="208" y="2" width="28" height="20"></rect>
+      {doors.map((d) => <rect class="mm-door" x={MX(d.x) - d.w} y="-2" width={d.w * 2} height="4" />)}
+      {
+        mapZones.map((z) => (
+          <g
+            class="mm-zone"
+            data-station={z.station}
+            role="button"
+            tabindex="0"
+            aria-label={hud.mapFly.replace('{station}', stationLabel(z.station))}
+          >
+            {z.rects.map(([rx, ry, rw, rh]) => (
+              <rect class="mm-zone-rect" x={rx} y={ry} width={rw} height={rh} />
+            ))}
+            <text class="mm-zone-label" x={z.lx} y={z.ly} text-anchor="middle">
+              {stationLabel(z.station)}
+            </text>
+          </g>
+        ))
+      }
+      <g data-mm-trucks></g>
+      <g data-mm-agvs></g>
+      <path class="mm-cam" data-mm-cam d="M0 -4.5 L3.2 3.4 L0 2.2 L-3.2 3.4 Z"></path>
+    </svg>
+  </div>
+</nav>
 
 <div id="flight-corridor" aria-hidden="true"></div>

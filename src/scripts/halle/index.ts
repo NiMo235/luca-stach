@@ -20,6 +20,7 @@ import { createSim } from './sim/world';
 import { createSimRender } from './sim/render';
 import { AGV_COUNT, AGV_WAIT } from './sim/agents';
 import { createHotspots } from './hotspots';
+import { createMinimap } from './minimap';
 import { COL } from './layout';
 
 export type { FlightWorld } from './types';
@@ -74,6 +75,10 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
     /* holo hotspot markers above the zone labels (tap = fly) —
        created before the stats count so the title card stays exact */
     const hotspots = createHotspots(scene, pulse.labelSprites);
+
+    /* minimap (DOM live layer; null when the markup is absent) */
+    const minimap = createMinimap(sim);
+    let mapAcc = 1; // force a first paint
 
     const tour = createTour();
     const stats = createStats(countScene(scene));
@@ -351,6 +356,21 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
         /* hotspot markers: bob + spin, dim at the docked station */
         const dockedStation = Math.min(6, Math.max(0, Math.round(p * 6)));
         hotspots.update(t, dockedStation, hoverStation, minLevel(L[3]));
+
+        /* minimap live layer at 4 Hz (dots/camera reuse SVG elements) */
+        if (minimap) {
+          mapAcc += dt;
+          if (mapAcc >= 0.25) {
+            mapAcc = 0;
+            camera.getWorldDirection(tmpV);
+            minimap.update(
+              camera.position.x,
+              camera.position.z,
+              THREE.MathUtils.radToDeg(Math.atan2(tmpV.x, -tmpV.z)),
+              dockedStation,
+            );
+          }
+        }
 
         /* held AGV expired (8 s timeout) → release the tag */
         if (focusId >= 0 && !sim.agvs[focusId].hold) {
