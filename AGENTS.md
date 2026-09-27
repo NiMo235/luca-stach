@@ -10,6 +10,14 @@ Persönliche Website von Luca Stach (BizOps & AI Automation). Astro 5 + Tailwind
 4. **Push = Auto-Deploy** — Workflow läuft, Orchestrator watched den Run und verifiziert live (verschlüsselte Seite, Chunks 200, keine Plaintext-Leaks).
 5. **Bericht an den User** — was neu ist, Passwort, ehrliche Einschränkungen.
 
+## Team-Betrieb (zwei Instanzen)
+- **Claude = Orchestrator / Ops.** Schreibt Briefings, reviewt, verifiziert, merged, pusht und prüft den Deploy. Arbeitet im Haupt-Checkout `luca-stach/` auf `main`. Ablauf: `.claude/skills/team/SKILL.md`.
+- **Kimi = Builder.** Wird headless über `bash scripts/team/kimi-build.sh <ID>` gestartet. Arbeitet ausschließlich im Worktree `../luca-stach-kimi/` auf Branch `kimi/<ID>`. Rolle: `.agents/agents/builder.md`.
+- **Warteschlange:** `.agents/BOARD.md`. Briefings, Feedback: `.agents/handoff/`. Reports, Logs: `.agents/logs/` (nicht versioniert).
+- Bis `ready` läuft alles autonom (Briefing → Build → Review → Nachbesserung, max. 3 Runden). Merge, Push und Deploy erst nach Freigabe durch den User (`/team merge <ID>`).
+- Guards: Aus Kimis Worktree ist Push technisch deaktiviert. Änderungen an geschützten Pfaden (`.github/`, `astro.config.mjs`, `.agents/`, `.claude/`, `scripts/team/`, `AGENTS.md`, `CLAUDE.md`) verwirft der Wrapper.
+- Nutzt der User Kimi interaktiv, gilt dieselbe Rollenverteilung: Kimi baut auf eigenem Branch, Claude merged.
+
 ## Hard Constraints (niemals brechen)
 - `.github/workflows/deploy.yml` und `astro.config.mjs` gehören dem Orchestrator — Builder-Agents fassen sie nicht an.
 - Agents pushen niemals. Nur lokale Commits. Push macht der Orchestrator.

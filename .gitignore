@@ -17,3 +17,7 @@ npm-debug.log*
 Thumbs.db
 dist-encrypted/
 encrypted/
+
+# agent team
+.agents/logs/
+.claude/settings.local.json
