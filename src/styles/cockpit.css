@@ -506,6 +506,24 @@
   color: var(--color-acid);
   font-weight: 500;
 }
+/* live simulation readout (model values, tagged as such) */
+#flight-hud .hud-tc-sim {
+  display: flex;
+  justify-content: flex-start;
+  gap: 12px;
+  margin-top: 2px;
+  color: var(--color-faint);
+}
+#flight-hud .hud-tc-sim b {
+  color: var(--color-cyan, #7dffd8);
+  font-weight: 500;
+}
+#flight-hud .hud-tc-model {
+  border: 1px solid color-mix(in srgb, var(--color-faint) 55%, transparent);
+  padding: 0 4px;
+  margin-left: 2px;
+  color: var(--color-faint);
+}
 #flight-hud .hud-eq {
   display: flex;
   align-items: flex-end;

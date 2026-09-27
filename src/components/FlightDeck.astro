@@ -20,6 +20,10 @@ interface Props {
     tcTriangles: string;
     tcParts: string;
     tcFps: string;
+    tcSimAgv: string;
+    tcSimTransit: string;
+    tcSimDwell: string;
+    tcSimModel: string;
   };
   langLabel: string;
   langHref: string;
@@ -67,6 +71,12 @@ const langUrl = `${import.meta.env.BASE_URL}${langHref.replace(/^\//, '')}`;
       <span>{hud.tcTriangles} <b class="hud-val" data-tc-tris>—</b></span>
       <span>{hud.tcParts} <b class="hud-val" data-tc-parts>—</b></span>
       <span>{hud.tcFps} <b class="hud-val" data-tc-fps>—</b></span>
+    </p>
+    <p class="hud-tc-sim">
+      <span>{hud.tcSimAgv} <b class="hud-val" data-tc-agv>—</b></span>
+      <span>{hud.tcSimTransit} <b class="hud-val" data-tc-transit>—</b></span>
+      <span>{hud.tcSimDwell} <b class="hud-val" data-tc-dwell>—</b></span>
+      <span class="hud-tc-model">{hud.tcSimModel}</span>
     </p>
   </div>
 
