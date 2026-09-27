@@ -308,9 +308,31 @@
   pointer-events: none;
   font-family: var(--font-mono);
   font-size: 10px;
-  letter-spacing: 0.14em;
-  color: var(--color-dim);
+  letter-spacing: 0.14em;  color: var(--color-dim);
   text-transform: uppercase;
+}
+/* legibility scrims: soft dark gradients behind the left HUD column
+   (station rail) and the bottom-left cluster (telemetry + title card),
+   so they stay readable over bright rack content */
+.flightdeck #flight-hud::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 260px;
+  background: linear-gradient(90deg, rgba(10, 13, 10, 0.75), transparent);
+  pointer-events: none;
+  z-index: -1;
+}
+.flightdeck #flight-hud::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 640px;
+  height: 150px;
+  background: linear-gradient(0deg, rgba(10, 13, 10, 0.72), transparent);
+  pointer-events: none;
+  z-index: -1;
 }
 #flight-hud .hud-corner {
   position: absolute;

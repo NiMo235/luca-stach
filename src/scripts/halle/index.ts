@@ -60,8 +60,9 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
     const tour = createTour();
     const stats = createStats(countScene(scene));
 
-    const ACID = new THREE.Color(COL.acid);
-    const CYAN = new THREE.Color(COL.cyan).multiplyScalar(0.85);
+    /* pulse base colors match the dimmed strip materials (details.ts) */
+    const ACID = new THREE.Color(COL.acid).multiplyScalar(0.5);
+    const CYAN = new THREE.Color(COL.cyan).multiplyScalar(0.55);
     const AMBER = new THREE.Color(COL.amber);
 
     const tmpV = new THREE.Vector3();
