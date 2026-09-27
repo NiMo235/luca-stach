@@ -86,8 +86,8 @@ for (let i = 0; i < 7; i++) {
   console.log('SHOT', NAMES[i], 'hud=', hud, 'pos=', pos);
 }
 
-/* mid-transit spot checks (collision control) */
-for (const [name, p] of [['transit-proof-log', 0.25], ['transit-beyond-dock', 11 / 12]]) {
+/* mid-transit spot checks (the segments that collided in round 1) */
+for (const [name, p] of [['transit-proof-log', 0.25], ['transit-stack-beyond', 0.8]]) {
   await evaluate(`window.scrollTo(0, ${p} * (document.documentElement.scrollHeight - innerHeight))`);
   await sleep(1400);
   const shot = await send('Page.captureScreenshot', { format: 'jpeg', quality: 78 });
@@ -104,6 +104,13 @@ const stats = await evaluate(`({
   fps: document.querySelector('[data-tc-fps]')?.textContent,
 })`);
 console.log('STATS', JSON.stringify(stats));
+
+/* BOOT at 1280×800 — title card must not overlap panels there either */
+await send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });
+await sleep(1500);
+const shot800 = await send('Page.captureScreenshot', { format: 'jpeg', quality: 78 });
+writeFileSync(path.join(outDir, 'boot-1280x800.jpg'), Buffer.from(shot800.result.data, 'base64'));
+console.log('SHOT boot-1280x800');
 
 console.log('CONSOLE_ERRORS', consoleErrors.length ? JSON.stringify(consoleErrors, null, 1) : 'none');
 ws.close();
