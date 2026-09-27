@@ -6,7 +6,7 @@
 /* ------------------------------------------------------------------ */
 
 import * as THREE from 'three';
-import { GALLERY, MEZZ, LEITSTAND, CAGE, LOUNGE, RACKS, DOORS, HALL, COL } from '../layout';
+import { GALLERY, MEZZ, LEITSTAND, CAGE, LOUNGE, RACKS, DOORS, HALL, COL, HOTSPOTS } from '../layout';
 import { GeoBatch, canvasTexture, rng } from '../util';
 
 export interface PulseTargets {
@@ -657,7 +657,8 @@ export function buildDetails(scene: THREE.Scene): { parts: number; pulse: PulseT
   yardGlow.position.set(DOORS[0].x - 4, 5.5, -37);
   scene.add(yardGlow);
 
-  /* ================= holo zone labels ================= */
+  /* ================= holo zone labels (positions shared with the
+     interactive hotspot markers, hotspots.ts) ================= */
   const labels: THREE.SpriteMaterial[] = [];
   const labelSprites: THREE.Sprite[] = [];
   const mk = (text: string, color: THREE.Color, x: number, y: number, z: number) => {
@@ -666,13 +667,9 @@ export function buildDetails(scene: THREE.Scene): { parts: number; pulse: PulseT
     labelSprites.push(sprite);
     add(sprite);
   };
-  mk('01 · BOOT', ACID, -38, 8.6, 26);
-  mk('02 · PROOF', CYAN, 47, 8.6, 21.5);
-  mk('03 · LOG', ACID, -49.6, 12.5, 12);
-  mk('04 · WORK', CYAN, 6, 10.2, 0);
-  mk('05 · STACK', ACID, 46, 10.8, 12);
-  mk('06 · BEYOND', AMBER, -45, 7.6, 24.5);
-  mk('07 · DOCK', AMBER, -50, 8.2, -26.5);
+  const LABEL_TEXTS = ['01 · BOOT', '02 · PROOF', '03 · LOG', '04 · WORK', '05 · STACK', '06 · BEYOND', '07 · DOCK'];
+  const LABEL_COLS = [ACID, CYAN, ACID, CYAN, ACID, AMBER, AMBER];
+  HOTSPOTS.forEach((h, i) => mk(LABEL_TEXTS[i], LABEL_COLS[i], h.x, h.y, h.z));
 
   return {
     parts,
