@@ -140,6 +140,11 @@
     "audioOff": "AUDIO: OFF",
     "audioOn": "AUDIO: ON",
     "stationsLabel": "stations",
+    "tcTitle": "THE HALL",
+    "tcSubtitle": "real-time model · procedural geometry",
+    "tcTriangles": "triangles",
+    "tcParts": "parts",
+    "tcFps": "fps",
     "stations": [
       {
         "id": "top",

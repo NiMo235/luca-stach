@@ -447,6 +447,35 @@
   align-items: flex-end;
   gap: 10px;
 }
+
+/* title card — above the audio cluster, bottom-right */
+#flight-hud .hud-titlecard {
+  position: absolute;
+  right: 40px;
+  bottom: 64px;
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+#flight-hud .hud-tc-title {
+  color: var(--color-acid);
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-shadow: 0 0 14px color-mix(in srgb, var(--color-acid) 45%, transparent);
+}
+#flight-hud .hud-tc-sub {
+  color: var(--color-faint);
+}
+#flight-hud .hud-tc-stats {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+#flight-hud .hud-tc-stats b {
+  color: var(--color-acid);
+  font-weight: 500;
+}
 #flight-hud .hud-eq {
   display: flex;
   align-items: flex-end;
