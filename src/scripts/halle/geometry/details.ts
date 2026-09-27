@@ -19,6 +19,20 @@ export interface PulseTargets {
   labelSprites: THREE.Sprite[];
 }
 
+/* light/material handles the power-up sequence (power.ts) dims up */
+export interface PowerHandles {
+  aisleSpots: THREE.SpotLight[];
+  coolSpots: THREE.SpotLight[];
+  loungeLight: THREE.PointLight;
+  leitstandLight: THREE.PointLight;
+  doorGlow: THREE.PointLight;
+  yardGlow: THREE.PointLight;
+  coneMat: THREE.MeshBasicMaterial;
+  poolMat: THREE.MeshBasicMaterial;
+  monMat: THREE.MeshBasicMaterial;
+  screenMat: THREE.MeshBasicMaterial;
+}
+
 const ACID = new THREE.Color(COL.acid);
 const CYAN = new THREE.Color(COL.cyan);
 const AMBER = new THREE.Color(COL.amber);
@@ -126,12 +140,14 @@ function monitorTexture(): THREE.CanvasTexture {
   });
 }
 
-export function buildDetails(scene: THREE.Scene): { parts: number; pulse: PulseTargets } {
+export function buildDetails(scene: THREE.Scene): { parts: number; pulse: PulseTargets; power: PowerHandles } {
   let parts = 0;
   const add = (o: THREE.Object3D) => {
     scene.add(o);
     parts++;
   };
+  /* refs the power-up sequence needs (filled below) */
+  const power = {} as PowerHandles;
 
   const steel = new THREE.MeshStandardMaterial({ color: 0x39424a, metalness: 0.85, roughness: 0.42 });
   const darkSteel = new THREE.MeshStandardMaterial({ color: 0x22282e, metalness: 0.8, roughness: 0.5 });
@@ -265,6 +281,7 @@ export function buildDetails(scene: THREE.Scene): { parts: number; pulse: PulseT
     const monTex = monitorTexture();
     const monMat = new THREE.MeshBasicMaterial({ map: monTex });
     monMat.color.setScalar(1.25); // lift past ACES compression a touch
+    power.monMat = monMat;
     const monScreens = new GeoBatch();
     const monStands = new GeoBatch();
     const monSpots: Array<[number, number, number]> = [
@@ -295,6 +312,7 @@ export function buildDetails(scene: THREE.Scene): { parts: number; pulse: PulseT
        the PROOF motif */
     const screenMat = new THREE.MeshBasicMaterial({ map: screenTexture() });
     screenMat.color.setScalar(1.45);
+    power.screenMat = screenMat;
     const screen = new THREE.Mesh(new THREE.PlaneGeometry(8.2, 3.0), screenMat);
     screen.rotation.y = -Math.PI / 2;
     screen.position.set(LEITSTAND.x1 - 0.4, fy + 2.05, cz);
@@ -511,6 +529,7 @@ export function buildDetails(scene: THREE.Scene): { parts: number; pulse: PulseT
       side: THREE.DoubleSide,
       fog: false,
     });
+    power.coneMat = coneMat;
     const coneGeo = new THREE.CylinderGeometry(0.34, 3.6, 12.1, 12, 1, true);
     /* remap uv so v=1 (bright) is at the top of the cone */
     const cones = new THREE.InstancedMesh(coneGeo, coneMat, lamps.length);
@@ -538,6 +557,7 @@ export function buildDetails(scene: THREE.Scene): { parts: number; pulse: PulseT
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     });
+    power.poolMat = poolMat;
     const pools = new THREE.InstancedMesh(new THREE.PlaneGeometry(9.5, 9.5), poolMat, lamps.length);
     const qFlat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2);
     const P = new THREE.Vector3();
@@ -602,13 +622,16 @@ export function buildDetails(scene: THREE.Scene): { parts: number; pulse: PulseT
   }
 
   /* ================= local work lights ================= */
+  const aisleSpots: THREE.SpotLight[] = [];
   for (const ax of RACKS.aislesX) {
     const spot = new THREE.SpotLight(0xc9ff70, 540, 36, 0.66, 0.6, 1.7);
     spot.position.set(ax, 12.2, 0);
     spot.target.position.set(ax, 0, 0);
     scene.add(spot, spot.target);
+    aisleSpots.push(spot);
   }
   /* cool wash over the WORK crossing — contrast to the acid aisles */
+  const coolSpots: THREE.SpotLight[] = [];
   for (const [x, z] of [
     [10, 0],
     [-14, 0],
@@ -617,6 +640,7 @@ export function buildDetails(scene: THREE.Scene): { parts: number; pulse: PulseT
     cool.position.set(x, 12.4, z);
     cool.target.position.set(x, 0, z);
     scene.add(cool, cool.target);
+    coolSpots.push(cool);
   }
   const loungeLight = new THREE.PointLight(COL.amber, 75, 24, 1.9);
   loungeLight.position.set((LOUNGE.x0 + LOUNGE.x1) / 2, 2.9, (LOUNGE.z0 + LOUNGE.z1) / 2);
@@ -653,5 +677,13 @@ export function buildDetails(scene: THREE.Scene): { parts: number; pulse: PulseT
   return {
     parts,
     pulse: { acid: acidMat, cyan: cyanMat, amber: amberMat, labels, beaconMat, beaconLight, labelSprites },
+    power: Object.assign(power, {
+      aisleSpots,
+      coolSpots,
+      loungeLight,
+      leitstandLight,
+      doorGlow,
+      yardGlow,
+    }),
   };
 }

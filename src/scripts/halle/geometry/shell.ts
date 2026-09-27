@@ -8,6 +8,7 @@
 import * as THREE from 'three';
 import { HALL, DOORS, COL } from '../layout';
 import { GeoBatch, canvasTexture, rng } from '../util';
+import { MARK_LANES } from '../sim/graph';
 
 const PXM = 2048 / HALL.L; // floor texture: ~17 px per meter
 
@@ -83,6 +84,21 @@ function floorTexture(aniso: number): THREE.CanvasTexture {
       ctx.beginPath();
       ctx.roundRect(X(lp.x0), Z(lp.z0), (lp.x1 - lp.x0) * PXM, (lp.z1 - lp.z0) * PXM, lp.r * PXM);
       ctx.stroke();
+      ctx.setLineDash([]);
+
+      /* spur lanes: drawn 1:1 from the sim graph (graph wins — the
+         texture follows the network, T-102) */
+      ctx.strokeStyle = 'rgba(180,255,57,0.30)';
+      ctx.lineWidth = 0.12 * PXM;
+      ctx.setLineDash([1.0 * PXM, 0.8 * PXM]);
+      for (const lane of MARK_LANES) {
+        ctx.beginPath();
+        lane.forEach(([x, z], i) => {
+          if (i === 0) ctx.moveTo(X(x), Z(z));
+          else ctx.lineTo(X(x), Z(z));
+        });
+        ctx.stroke();
+      }
       ctx.setLineDash([]);
 
       /* pedestrian walkway along the south side + crossings */
@@ -231,7 +247,17 @@ function trussBeam(b: GeoBatch, a: THREE.Vector3, c: THREE.Vector3, r: number): 
   b.add(g, mid.x, mid.y, mid.z);
 }
 
-export function buildShell(scene: THREE.Scene, maxAniso: number): { parts: number } {
+export interface ShellPower {
+  redMat: THREE.MeshBasicMaterial;
+  greenMat: THREE.MeshBasicMaterial;
+  yardHeadMat: THREE.MeshBasicMaterial;
+  emergMat: THREE.MeshBasicMaterial;
+}
+
+export function buildShell(
+  scene: THREE.Scene,
+  maxAniso: number,
+): { parts: number; power: ShellPower } {
   let parts = 0;
   const add = (o: THREE.Object3D) => {
     scene.add(o);
@@ -395,9 +421,20 @@ export function buildShell(scene: THREE.Scene, maxAniso: number): { parts: numbe
   });
   redLamps.instanceMatrix.needsUpdate = true;
   add(redLamps);
-  const greenLamp = new THREE.Mesh(lampGeo, new THREE.MeshBasicMaterial({ color: COL.acid }));
+  const greenMat = new THREE.MeshBasicMaterial({ color: COL.acid });
+  const greenLamp = new THREE.Mesh(lampGeo, greenMat);
   greenLamp.position.set(t1.x, t1.h + 0.35, HALL.Z0 + 0.35);
   add(greenLamp);
+
+  /* emergency strips flanking the dock doors — first thing that powers
+     up in the intro sequence (group 0) */
+  const emergMat = new THREE.MeshBasicMaterial({ color: 0x3fae62 });
+  const emerg = new GeoBatch();
+  for (const d of DOORS) {
+    emerg.box(0.07, d.h + 0.5, 0.07, d.x - d.w / 2 - 0.32, (d.h + 0.5) / 2, HALL.Z0 + 0.18);
+    emerg.box(0.07, d.h + 0.5, 0.07, d.x + d.w / 2 + 0.32, (d.h + 0.5) / 2, HALL.Z0 + 0.18);
+  }
+  add(emerg.mesh(emergMat, false, false));
 
   /* ---- the yard outside (seen through the open TOR 1) ---- */
   const yardMat = new THREE.MeshStandardMaterial({ color: 0x101316, roughness: 0.98 });
@@ -418,21 +455,8 @@ export function buildShell(scene: THREE.Scene, maxAniso: number): { parts: numbe
   for (const px of [-52, -14, 26]) heads.box(0.6, 0.08, 0.22, px + 0.5, 8.32, -46);
   add(heads.mesh(headMat, false, false));
 
-  /* two trailers backed onto doors 02 / 03 */
-  const trailerMat = new THREE.MeshStandardMaterial({ color: 0x272d33, roughness: 0.6, metalness: 0.4 });
-  const trailers = new GeoBatch();
-  for (const tx of [-30, -10]) {
-    trailers.box(2.55, 2.7, 12.5, tx, 1.75, -37.5);
-    trailers.box(2.4, 0.9, 12.0, tx, 0.55, -37.5); // underbody shadow block
-  }
-  add(trailers.mesh(trailerMat, false, false));
-  const tailMat = new THREE.MeshBasicMaterial({ color: 0x8c1f16 });
-  const tails = new GeoBatch();
-  for (const tx of [-30, -10]) {
-    tails.box(0.2, 0.12, 0.06, tx - 1.0, 0.9, -43.8);
-    tails.box(0.2, 0.12, 0.06, tx + 1.0, 0.9, -43.8);
-  }
-  add(tails.mesh(tailMat, false, false));
+  /* doors 02/03 get their trailers from the simulation now (T-102) —
+     the yard stays otherwise empty for the animated truck traffic */
 
   /* distant city glow behind the yard */
   const glowTex = canvasTexture(256, 64, (ctx, W, H2) => {
@@ -516,5 +540,5 @@ export function buildShell(scene: THREE.Scene, maxAniso: number): { parts: numbe
   spillFar.position.set(t1.x, 2.55, HALL.Z0 - 3);
   add(spillFar);
 
-  return { parts };
+  return { parts, power: { redMat, greenMat, yardHeadMat: headMat, emergMat } };
 }

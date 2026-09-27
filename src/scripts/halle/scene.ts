@@ -11,6 +11,8 @@ export interface Stage {
   renderer: THREE.WebGLRenderer;
   scene: THREE.Scene;
   camera: THREE.PerspectiveCamera;
+  hemi: THREE.HemisphereLight;
+  moon: THREE.DirectionalLight;
   dispose(): void;
 }
 
@@ -77,6 +79,8 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
     renderer,
     scene,
     camera,
+    hemi,
+    moon,
     dispose() {
       window.removeEventListener('resize', resize);
     },
