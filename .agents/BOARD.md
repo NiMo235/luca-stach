@@ -8,7 +8,14 @@ Status: `todo` → `briefed` → `building` → `review` → `done`. Bei Problem
 ## Offen
 | ID | Aufgabe | Status | Notiz |
 |----|---------|--------|-------|
+| T-101 | Halle statisch & schön: Modul src/scripts/halle/ (FlightWorld-Interface), Hülle/Regal/Look/Kamerafahrt/Title-Card, flightdeck lädt Halle | todo | siehe docs/concepts/T-001-halle.md §12 |
+| T-102 | Die Halle lebt: Wegenetz+Reservierung, 25–40 AGVs, Shuttles, RBGs, Power-up-Intro, AGV per Klick anhalten | todo | nach T-101 |
+| T-103 | Zonen + Tippen: Leitstand, Förderloop, Prüfstraße, Gefahrgut, Mezzanine, Pausenraum, Tore; Hotspots + Minimap → Flug-Fahrt | todo | nach T-102 |
+| T-104 | Inhalte interaktiv: LOG-Paletten, Leitstand manuell↔Pipeline (ROI), Prüfstraße, DOCK verladen; Warehouse-Toy raus | todo | nach T-103 |
+| T-105 | Atmosphäre: Schichten Früh/Spät/Nacht, Layer-Toggles, Datenströme, Pausenraum-Audio | todo | nach T-104 |
+| T-106 | Härtung: Qualitätsstufen, Perf, i18n, A11y, Fallbacks, flightworld.ts entfernen | todo | nach T-105 |
 
 ## Erledigt
 | ID | Aufgabe | Commit | Datum | Ergebnis |
 |----|---------|--------|-------|----------|
+| T-001 | Konzept Lagerhalle | 90b692d | 2026-09-27 | docs/concepts/T-001-halle.md, Entscheidungen §12 |
