@@ -17,7 +17,7 @@ import { canvasTexture } from '../util';
 
 const STATUS_COLORS = [
   new THREE.Color(COL.acid), // GO
-  new THREE.Color(COL.amber), // WAIT
+  new THREE.Color(0xff9a1f), // WAIT — signal orange, not beige
   new THREE.Color(0xff3524), // HOLD
 ];
 
@@ -57,7 +57,7 @@ export function createSimRender(scene: THREE.Scene, sim: Sim): SimRender {
 
   /* ---- AGV bodies + status bars + fake contact shadows ---- */
   const bodyMat = new THREE.MeshStandardMaterial({
-    color: 0x2c333b,
+    color: 0x3a4450, // bright enough to read as a body even in dim zones
     metalness: 0.65,
     roughness: 0.45,
   });
@@ -66,23 +66,24 @@ export function createSimRender(scene: THREE.Scene, sim: Sim): SimRender {
   agvMesh.frustumCulled = false;
   scene.add(agvMesh);
 
-  const barMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  /* status lights: FLAT strips, one on the deck and one along the mast's
+     front top edge (visible even when a pallet rides on the deck).
+     separate materials per instanced mesh — sharing a material across
+     instanced meshes risks program/attribute cache mix-ups */
+  const initColor = new THREE.Color(COL.acid);
   const barGeo = new THREE.BoxGeometry(1.05, 0.055, 0.14);
-  const bars = new THREE.InstancedMesh(barGeo, barMat, AGV_COUNT);
+  const bars = new THREE.InstancedMesh(barGeo, new THREE.MeshBasicMaterial({ color: 0xffffff }), AGV_COUNT);
   bars.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   bars.frustumCulled = false;
-  const initColor = new THREE.Color(COL.acid);
   for (let i = 0; i < AGV_COUNT; i++) bars.setColorAt(i, initColor);
   scene.add(bars);
-  /* mast beacon: pokes above the load so HOLD/WAIT reads even when the
-     deck bar is hidden behind a pallet */
-  const beaconGeo = new THREE.BoxGeometry(0.07, 0.8, 0.07);
-  const beacons = new THREE.InstancedMesh(beaconGeo, barMat, AGV_COUNT);
-  beacons.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-  beacons.frustumCulled = false;
-  for (let i = 0; i < AGV_COUNT; i++) beacons.setColorAt(i, initColor);
-  scene.add(beacons);
-  const BEACON_OFF = new THREE.Vector3(0.52, 1.07, 0.92);
+  const stripGeo = new THREE.BoxGeometry(1.04, 0.075, 0.05);
+  const strips = new THREE.InstancedMesh(stripGeo, new THREE.MeshBasicMaterial({ color: 0xffffff }), AGV_COUNT);
+  strips.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  strips.frustumCulled = false;
+  for (let i = 0; i < AGV_COUNT; i++) strips.setColorAt(i, initColor);
+  scene.add(strips);
+  const STRIP_OFF = new THREE.Vector3(0, 0.665, 0.9); // mast top front edge
   const lastStatus = new Int8Array(AGV_COUNT).fill(-1);
   const lastHeading = new Float32Array(AGV_COUNT);
 
@@ -124,11 +125,11 @@ export function createSimRender(scene: THREE.Scene, sim: Sim): SimRender {
   /* ---- shuttles (Regalgänge) ---- */
   const shuttleGeo = new THREE.BoxGeometry(1.05, 0.3, 1.5);
   const shuttleMat = new THREE.MeshStandardMaterial({
-    color: 0x27443e,
+    color: 0x2f5a52,
     metalness: 0.6,
     roughness: 0.4,
     emissive: new THREE.Color(COL.cyan),
-    emissiveIntensity: 0.35,
+    emissiveIntensity: 0.85, // read clearly inside the dark aisles
   });
   const shuttles = new THREE.InstancedMesh(shuttleGeo, shuttleMat, sim.shuttles.length);
   shuttles.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -136,7 +137,14 @@ export function createSimRender(scene: THREE.Scene, sim: Sim): SimRender {
   scene.add(shuttles);
 
   /* ---- RBGs (Gang A + C): Portalrahmen + Hubwerk ---- */
-  const rbgMat = new THREE.MeshStandardMaterial({ color: 0x4d5762, metalness: 0.8, roughness: 0.4 });
+  const rbgMat = new THREE.MeshStandardMaterial({ color: 0x67727e, metalness: 0.8, roughness: 0.4 });
+  const rbgLiftMat = new THREE.MeshStandardMaterial({
+    color: 0x67727e,
+    metalness: 0.7,
+    roughness: 0.4,
+    emissive: new THREE.Color(COL.acid),
+    emissiveIntensity: 0.28, // Hubwerk glimmt — aus der Gangperspektive lesbar
+  });
   const rbgUnits: Array<{ frame: THREE.Mesh; lift: THREE.Mesh }> = [];
   for (let i = 0; i < sim.rbgs.length; i++) {
     const up1 = new THREE.BoxGeometry(0.28, 11.4, 0.28);
@@ -146,7 +154,7 @@ export function createSimRender(scene: THREE.Scene, sim: Sim): SimRender {
     const beam = new THREE.BoxGeometry(3.0, 0.32, 0.34);
     beam.translate(0, 11.35, 0);
     const frame = new THREE.Mesh(mergeGeometries([up1, up2, beam])!, rbgMat);
-    const lift = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.4, 1.15), rbgMat);
+    const lift = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.4, 1.15), rbgLiftMat);
     scene.add(frame, lift);
     rbgUnits.push({ frame, lift });
   }
@@ -259,16 +267,17 @@ export function createSimRender(scene: THREE.Scene, sim: Sim): SimRender {
         P.y = 0.76;
         m4.compose(P, Q, S);
         bars.setMatrixAt(i, m4);
-        /* beacon on the mast corner (offset rotated with the heading) */
-        tmpOff.copy(BEACON_OFF).applyQuaternion(Q);
+        /* mast strip: flat light along the front top edge (offset
+           rotated with the heading) */
+        tmpOff.copy(STRIP_OFF).applyQuaternion(Q);
         P.set(x + tmpOff.x, tmpOff.y, z + tmpOff.z);
         m4.compose(P, Q, S);
-        beacons.setMatrixAt(i, m4);
+        strips.setMatrixAt(i, m4);
         if (a.status !== lastStatus[i]) {
           lastStatus[i] = a.status;
           const c = STATUS_COLORS[a.status] ?? STATUS_COLORS[AGV_GO];
           bars.setColorAt(i, c);
-          beacons.setColorAt(i, c);
+          strips.setColorAt(i, c);
         }
 
         /* fake contact shadow */
@@ -279,7 +288,9 @@ export function createSimRender(scene: THREE.Scene, sim: Sim): SimRender {
       }
       agvMesh.instanceMatrix.needsUpdate = true;
       bars.instanceMatrix.needsUpdate = true;
+      strips.instanceMatrix.needsUpdate = true;
       if (bars.instanceColor) bars.instanceColor.needsUpdate = true;
+      if (strips.instanceColor) strips.instanceColor.needsUpdate = true;
 
       /* pallets */
       for (let i = 0; i < PALLET_COUNT; i++) {
@@ -378,7 +389,7 @@ export function createSimRender(scene: THREE.Scene, sim: Sim): SimRender {
       }
     },
     dispose() {
-      scene.remove(agvMesh, bars, beacons, shadows, palletMesh, shuttles, trailers, cabs, tails, ring, tag);
+      scene.remove(agvMesh, bars, strips, shadows, palletMesh, shuttles, trailers, cabs, tails, ring, tag);
       for (const u of rbgUnits) scene.remove(u.frame, u.lift);
     },
   };

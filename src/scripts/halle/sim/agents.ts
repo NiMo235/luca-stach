@@ -249,7 +249,8 @@ export function stepShuttle(s: Shuttle, dt: number, rnd: () => number): void {
   }
 }
 
-/* ---- RBG (Regalbediengerät, Gang A + C) ------------------------------ */
+/* ---- RBG (Regalbediengerät, Gang A + C; Gang B bleibt den Shuttles,
+       damit sich Shuttle und Portal nicht durchdringen) ---------------- */
 
 export interface Rbg {
   x: number; // aisle center

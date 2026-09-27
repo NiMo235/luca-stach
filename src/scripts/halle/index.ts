@@ -218,6 +218,14 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
         return true;
       },
       stats: () => ({ ...sim.stats }),
+      /* live entity positions for the shot scripts (shuttles/RBGs/trucks) */
+      entities(): unknown {
+        return {
+          shuttles: sim.shuttles.map((s) => ({ aisle: s.aisle, x: s.x, y: +s.y.toFixed(1), z: +s.z.toFixed(1) })),
+          rbgs: sim.rbgs.map((r) => ({ x: r.x, z: +r.z.toFixed(1), liftY: +r.liftY.toFixed(1) })),
+          trucks: sim.trucks.map((t) => ({ door: t.door, phase: t.phase, z: +t.z.toFixed(1) })),
+        };
+      },
       /* probe for tests/shots: world pos + status + screen projection */
       probe(id: number): unknown {
         const a = sim.agvs[id];
