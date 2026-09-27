@@ -448,15 +448,23 @@
   gap: 10px;
 }
 
-/* title card — above the audio cluster, bottom-right */
+/* title card — bottom row, right of the telemetry readout (stays
+   clear of the left-low LOG panel and the station rail) */
 #flight-hud .hud-titlecard {
   position: absolute;
-  right: 40px;
-  bottom: 64px;
-  text-align: right;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
+  left: 264px;
+  bottom: 22px;
+  text-align: left;
+  display: block; /* <p> children stay inline-able (flex would blockify) */
+  pointer-events: none;
+}
+/* title + subtitle share one line, stats row below */
+#flight-hud .hud-tc-title,
+#flight-hud .hud-tc-sub {
+  display: inline;
+}
+#flight-hud .hud-tc-sub {
+  margin-left: 10px;
 }
 #flight-hud .hud-tc-title {
   color: var(--color-acid);
@@ -469,7 +477,7 @@
 }
 #flight-hud .hud-tc-stats {
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 12px;
 }
 #flight-hud .hud-tc-stats b {

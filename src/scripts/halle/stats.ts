@@ -1,19 +1,21 @@
 /* ------------------------------------------------------------------ */
-/* Title-card stats: live triangles / parts / fps in the HUD,          */
-/* throttled to ~2 updates per second. Reads renderer.info after the   */
-/* frame; `parts` is counted once from the built scene.                */
+/* Title-card stats: triangles / parts / fps in the HUD, throttled to  */
+/* ~2 updates per second. Triangles + parts are counted ONCE from the  */
+/* built scene geometry (index.ts) — renderer.info would include the   */
+/* shadow pass. fps is a smoothed frame-rate estimate.                 */
 /* ------------------------------------------------------------------ */
-
-import type * as THREE from 'three';
 
 export interface Stats {
   frame(dt: number): void;
 }
 
-export function createStats(renderer: THREE.WebGLRenderer, parts: number): Stats {
+export function createStats(counts: { tris: number; parts: number }): Stats {
   const elTris = document.querySelector<HTMLElement>('[data-tc-tris]');
   const elParts = document.querySelector<HTMLElement>('[data-tc-parts]');
   const elFps = document.querySelector<HTMLElement>('[data-tc-fps]');
+
+  if (elTris) elTris.textContent = counts.tris.toLocaleString('en-US');
+  if (elParts) elParts.textContent = counts.parts.toLocaleString('en-US');
 
   let fps = 0;
   let acc = 0;
@@ -27,9 +29,6 @@ export function createStats(renderer: THREE.WebGLRenderer, parts: number): Stats
       acc += dt;
       if (acc < 0.5) return;
       acc = 0;
-      const tris = renderer.info.render.triangles;
-      if (elTris) elTris.textContent = tris.toLocaleString('en-US');
-      if (elParts) elParts.textContent = String(parts);
       if (elFps) elFps.textContent = String(Math.round(fps));
     },
   };
