@@ -98,25 +98,48 @@ await shot('work-anim-2');
 await sleep(1000);
 await shot('work-anim-3');
 
-/* LOG with running sim */
+/* LOG with running sim — wait until a shuttle works the LOG aisle (B)
+   in the camera's view window, so the aisle visibly lives */
 await evaluate(`window.scrollTo(0, ${2 / 6} * (document.documentElement.scrollHeight - innerHeight))`);
-await sleep(2600);
+await sleep(2000);
+for (let i = 0; i < 90; i++) {
+  const ent = await evaluate(`window.__halleDebug.entities()`);
+  /* close to the camera (z 2..12; camera sits at z=13.5) => big in frame */
+  const sh = ent.shuttles.find((s) => s.aisle === 1 && s.z > 2 && s.z < 12);
+  if (sh) { console.log('shuttle in LOG view:', JSON.stringify(sh)); break; }
+  await sleep(300);
+}
 await shot('log-live');
+
+/* DOCK: the camera faces TOR 01 (door 0, x=-50) — wait for a truck
+   backed onto it (dock/work), tail lights toward the hall */
+await evaluate(`window.scrollTo(0, document.documentElement.scrollHeight - innerHeight)`);
+await sleep(2600);
+for (let i = 0; i < 150; i++) {
+  const ent = await evaluate(`window.__halleDebug.entities()`);
+  const tr = ent.trucks.find((t) => t.door === 0 && (t.phase === 'dock' || t.phase === 'work'));
+  if (tr) { console.log('truck at TOR 01:', JSON.stringify(tr)); break; }
+  await sleep(400);
+}
+await shot('dock-lkw');
 
 /* held AGV + congestion: pick a working AGV that is ON SCREEN in the
    left half (not behind the work panel), hold it, watch the queue grow */
 await evaluate(`window.scrollTo(0, ${3 / 6} * (document.documentElement.scrollHeight - innerHeight))`);
 await sleep(2200);
 const held = await evaluate(`(() => {
-  const cands = window.__halleDebug.working()
-    .map((id) => window.__halleDebug.probe(id))
-    .filter((p) => p && p.sx > 120 && p.sx < 780 && p.sy > 260 && p.sy < 800);
+  const probes = window.__halleDebug.working().map((id) => window.__halleDebug.probe(id));
+  const onScreen = probes.filter((p) => p && p.sx > 260 && p.sx < 760 && p.sy > 380 && p.sy < 760);
+  if (!onScreen.length) return -1;
+  /* prefer an AGV that HAS a follower close behind (real congestion) */
+  const withFollower = onScreen.filter((p) =>
+    probes.some((q) => q && q.id !== p.id && Math.hypot(q.x - p.x, q.z - p.z) < 10));
+  const cands = withFollower.length ? withFollower : onScreen;
   cands.sort((a, b) => b.sy - a.sy); // lowest on screen first = closest
-  if (!cands.length) return -1;
   return window.__halleDebug.holdId(cands[0].id) ? cands[0].id : -1;
 })()`);
 console.log('held AGV:', held);
-await sleep(4500);
+await sleep(7000); // let the queue build up behind the held AGV
 const heldProbe = await evaluate(`window.__halleDebug.probe(${held})`);
 console.log('held probe:', JSON.stringify(heldProbe));
 await shot('agv-hold-stau');
