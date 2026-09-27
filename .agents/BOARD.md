@@ -8,7 +8,7 @@ Status: `todo` → `briefed` → `building` → `review` → `done`. Bei Problem
 ## Offen
 | ID | Aufgabe | Status | Notiz |
 |----|---------|--------|-------|
-| T-101 | Halle statisch & schön: Modul src/scripts/halle/ (FlightWorld-Interface), Hülle/Regal/Look/Kamerafahrt/Title-Card, flightdeck lädt Halle | todo | siehe docs/concepts/T-001-halle.md §12 |
+| T-101 | Halle statisch & schön: Modul src/scripts/halle/ (FlightWorld-Interface), Hülle/Regal/Look/Kamerafahrt/Title-Card, flightdeck lädt Halle | ready | siehe docs/concepts/T-001-halle.md §12 |
 | T-102 | Die Halle lebt: Wegenetz+Reservierung, 25–40 AGVs, Shuttles, RBGs, Power-up-Intro, AGV per Klick anhalten | todo | nach T-101 |
 | T-103 | Zonen + Tippen: Leitstand, Förderloop, Prüfstraße, Gefahrgut, Mezzanine, Pausenraum, Tore; Hotspots + Minimap → Flug-Fahrt | todo | nach T-102 |
 | T-104 | Inhalte interaktiv: LOG-Paletten, Leitstand manuell↔Pipeline (ROI), Prüfstraße, DOCK verladen; Warehouse-Toy raus | todo | nach T-103 |
