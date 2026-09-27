@@ -354,6 +354,19 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
 
   let beat = 0;
 
+  /* ---- toy coupling: the ROI sliders grow the PROOF towers, the
+     sequencer steps flash the BEYOND rings (flightdeck-only) ---- */
+  let roiMixTarget = 0.31; // matches the slider defaults (10 quotes · 25 min)
+  window.addEventListener('toy:roi', (e) => {
+    const d = (e as CustomEvent<{ quotes: number; minutes: number }>).detail;
+    if (!d) return;
+    roiMixTarget = THREE.MathUtils.clamp((d.quotes / 50) * 0.5 + (d.minutes / 60) * 0.5, 0, 1);
+  });
+  let seqFlash = 0;
+  window.addEventListener('toy:seq', () => {
+    seqFlash = 1;
+  });
+
   /* ---- 01 BOOT: giant terminal hologram ahead of the camera ---- */
   {
     const g = new THREE.Group();
@@ -426,6 +439,12 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
        one clipped past on the way in */
     const xs = [-9.5, -4.5, 1.5, 6.5, 10.5];
     const zs = [-38, -41, -34.5, -39, -44];
+    const towers: Array<{
+      line: THREE.LineSegments;
+      fill: THREE.Mesh;
+      h: number;
+      s: number; // current lerped height factor (ROI toy coupling)
+    }> = [];
     heights.forEach((h, k) => {
       const geo = new THREE.EdgesGeometry(new THREE.BoxGeometry(2.1, h, 2.1));
       const mat = fadeMat(new THREE.LineBasicMaterial(), 0.75, ACID);
@@ -438,6 +457,7 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
       fill.position.copy(tower.position);
       g.add(fill);
       mats.push(fillMat);
+      towers.push({ line: tower, fill, h, s: 1 });
     });
     registerSet({
       i: 1,
@@ -450,6 +470,15 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
           const ignite = THREE.MathUtils.smoothstep(approach * 1.6 - k * 0.18, 0, 1);
           m.opacity = (0.2 + 0.65 * ignite) * fade * (0.9 + 0.1 * Math.sin(t * 2 + k));
         });
+        /* ROI toy: tower heights ease toward the slider-derived factor */
+        const target = 0.55 + roiMixTarget;
+        for (const tw of towers) {
+          tw.s += (target - tw.s) * Math.min(1, wdt * 3.5);
+          tw.line.scale.y = tw.s;
+          tw.line.position.y = -12 + (tw.h * tw.s) / 2;
+          tw.fill.scale.y = tw.s;
+          tw.fill.position.y = tw.line.position.y;
+        }
       },
     });
   }
@@ -663,12 +692,15 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
       group: g,
       mats,
       tick: (fade, wdt, t) => {
-        /* constant slow pulse; the audio kick (beat) rides on top */
+        /* constant slow pulse; the audio kick (beat) rides on top, the
+           sequencer steps flash the ring color toward cyan */
+        seqFlash = Math.max(0, seqFlash - wdt * 2.2);
         rings.forEach((r, k) => {
           const s = (t * 0.22 + k / RINGS) % 1;
           const scale = 1 + s * 15;
           r.scale.set(scale, scale, 1);
           r.material.opacity = (1 - s) * (0.5 + beat * 0.5) * fade;
+          r.material.color.copy(WARM).lerp(ACID_CYAN, seqFlash * 0.55);
         });
       },
     });

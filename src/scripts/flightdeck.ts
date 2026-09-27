@@ -54,32 +54,35 @@ export async function initFlightdeck(): Promise<boolean> {
   const eq = hud.querySelector<HTMLElement>('.hud-eq');
   const audioBtn = hud.querySelector<HTMLButtonElement>('[data-audio-toggle]');
 
-  /* ---- audio (opt-in, lazy) ---- */
+  /* ---- audio (opt-in; engine shared with the BEYOND sequencer) ---- */
   let audio: import('./audio').FlightAudio | null = null;
   let beatLevel = 0;
-  audioBtn?.addEventListener('click', async () => {
-    try {
-      if (!audio) {
-        const m = await import('./audio');
-        audio = new m.FlightAudio();
-        audio.onBeat = () => {
-          beatLevel = 1;
-          world.pulse();
-        };
-      }
-      if (audio.running) {
-        audio.stop();
-        audioBtn.textContent = audioBtn.dataset.labelOff ?? '';
-        audioBtn.setAttribute('aria-pressed', 'false');
-        beatLevel = 0;
-      } else {
-        audio.start();
-        audioBtn.textContent = audioBtn.dataset.labelOn ?? '';
-        audioBtn.setAttribute('aria-pressed', 'true');
-      }
-    } catch {
-      /* audio unavailable — leave it off */
-    }
+  const syncAudioUi = (running: boolean) => {
+    if (!audioBtn) return;
+    audioBtn.textContent = running
+      ? (audioBtn.dataset.labelOn ?? '')
+      : (audioBtn.dataset.labelOff ?? '');
+    audioBtn.setAttribute('aria-pressed', String(running));
+    if (!running) beatLevel = 0;
+    window.dispatchEvent(new CustomEvent('audio:state', { detail: { running } }));
+  };
+  try {
+    const m = await import('./audio');
+    audio = m.getSharedAudio();
+    audio.onBeat = () => {
+      beatLevel = 1;
+      world.pulse();
+    };
+    /* one sync path for both trigger sources: the HUD button and the
+       sequencer's PLAY/STOP */
+    audio.onStateChange = syncAudioUi;
+  } catch {
+    /* audio unavailable — leave it off */
+  }
+  audioBtn?.addEventListener('click', () => {
+    if (!audio) return;
+    if (audio.running) audio.stop();
+    else audio.start();
   });
   document.addEventListener('visibilitychange', () => {
     if (!audio) return;

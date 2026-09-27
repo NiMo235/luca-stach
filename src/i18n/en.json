@@ -39,7 +39,37 @@
       "identity ................ LUCA STACH"
     ],
     "initGranted": "ACCESS GRANTED",
-    "initSkip": "any key — skip"
+    "initSkip": "any key — skip",
+    "terminal": {
+      "ariaLabel": "Terminal: type a command and press Enter",
+      "hint": "interactive — try 'help'",
+      "helpTitle": "available commands:",
+      "commands": [
+        ["help", "this overview"],
+        ["whoami", "who is luca stach"],
+        ["skills", "stack & methods"],
+        ["contact", "mail & linkedin"],
+        ["cv", "resume as pdf"],
+        ["social", "linkedin profile"],
+        ["clear", "clear the terminal"]
+      ],
+      "whoami": [
+        "Luca Stach — BizOps Analyst & AI Builder",
+        "Briem Speditions-GmbH · Münsingen, DE",
+        "builds systems that turn manual work into measurable output"
+      ],
+      "skills": [
+        "react · sql server · llm/api-integration · ocr",
+        "process analysis · business cases · excel/vba · git"
+      ],
+      "contact": ["mail → {email}", "in   → {linkedin}"],
+      "cv": "cv → {cv}",
+      "cvLink": "[ download pdf ]",
+      "social": "in → {linkedin} ↗",
+      "socialLink": "[ open linkedin ]",
+      "sudo": "[sudo] permission denied — root is for your own systems.",
+      "notFound": "{cmd}: command not found — try 'help'"
+    }
   },
   "proof": {
     "kicker": "// proof, not promises",
@@ -72,7 +102,17 @@
         "label": "thesis grade",
         "detail": "final grade 2.1 — DHBW Lörrach, BWL Shipping & Logistics"
       }
-    ]
+    ],
+    "calc": {
+      "title": "// model — what does the system save?",
+      "quotesLabel": "quotes per day",
+      "minutesLabel": "minutes per manual quote",
+      "hoursLabel": "hours saved / year",
+      "hoursUnit": "h",
+      "paybackLabel": "payback",
+      "paybackUnit": "months",
+      "note": "model: 67% time saved · 250 workdays · €25k build cost · €45/h"
+    }
   },
   "ticker": {
     "items": [
@@ -259,7 +299,17 @@
           "Automotive"
         ]
       }
-    ]
+    ],
+    "wh": {
+      "title": "// mini-game — high-bay warehouse",
+      "hint": "pick a package → click a free slot",
+      "queueLabel": "inbound",
+      "slotsLabel": "slots",
+      "optimize": "optimize",
+      "reset": "reset",
+      "full": "warehouse full — optimize?",
+      "pkgLabel": "package"
+    }
   },
   "stack": {
     "kicker": "// stack & methods",
@@ -361,7 +411,14 @@
     "certs": [
       "AEVO — trainer qualification (AdA)",
       "Transport manager (Verkehrsleiter)"
-    ]
+    ],
+    "seq": {
+      "title": "// step sequencer — 128 bpm",
+      "play": "play",
+      "stop": "stop",
+      "hint": "toggle cells · play starts the audio",
+      "ariaLabel": "Step sequencer: 4 tracks, 8 steps"
+    }
   },
   "contact": {
     "kicker": "// contact",

@@ -14,10 +14,16 @@ interface Props {
   ctaWork: string;
   ctaContact: string;
   scroll: string;
+  terminal: Record<string, unknown>;
+  email: string;
+  linkedin: string;
+  cvHref: string;
 }
 
-const { prompt, kicker, status, terminalLines, initLines, initGranted, initSkip, name1, name2, role, intro, ctaWork, ctaContact, scroll } = Astro.props;
+const { prompt, kicker, status, terminalLines, initLines, initGranted, initSkip, name1, name2, role, intro, ctaWork, ctaContact, scroll, terminal, email, linkedin, cvHref } = Astro.props;
 const typedTarget = `${name1} ${name2} — ${role}`;
+const cvUrl = `${import.meta.env.BASE_URL}${cvHref.replace(/^\//, '')}`;
+const cvFile = cvHref.split('/').pop() ?? cvHref;
 ---
 
 <section id="top" class="relative flex min-h-screen flex-col justify-center overflow-hidden">
@@ -106,6 +112,38 @@ const typedTarget = `${name1} ${name2} — ${role}`;
       <p class="mt-4 font-mono text-[11px] leading-relaxed text-faint">
         {terminalLines.map((line) => <span class="block">{line}</span>)}
       </p>
+
+      <!-- working CLI: unlocks after the typed intro (JS only) -->
+      <div
+        class="hero-term"
+        data-terminal
+        data-responses={JSON.stringify(terminal)}
+        data-prompt={kicker.trim()}
+        data-email={email}
+        data-linkedin={linkedin}
+        data-cv={cvFile}
+        data-cv-href={cvUrl}
+      >
+        <div class="hero-term-bar" aria-hidden="true">
+          <span class="boot-dot"></span>
+          <span class="boot-dot"></span>
+          <span class="boot-dot"></span>
+          <span class="boot-title">STACH://TERMINAL</span>
+        </div>
+        <div class="hero-term-out" data-term-out aria-live="polite"></div>
+        <div class="hero-term-line">
+          <span class="hero-term-prompt" aria-hidden="true">{kicker.trim()}</span>
+          <input
+            data-term-input
+            type="text"
+            autocomplete="off"
+            autocapitalize="off"
+            spellcheck="false"
+            aria-label={(terminal as { ariaLabel?: string }).ariaLabel ?? 'terminal input'}
+          />
+        </div>
+        <p class="hero-term-hint" aria-hidden="true">{(terminal as { hint?: string }).hint}</p>
+      </div>
     </div>
   </div>
 

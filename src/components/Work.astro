@@ -8,14 +8,26 @@ interface Case {
   tags: string[];
 }
 
+interface Wh {
+  title: string;
+  hint: string;
+  queueLabel: string;
+  slotsLabel: string;
+  optimize: string;
+  reset: string;
+  full: string;
+  pkgLabel: string;
+}
+
 interface Props {
   kicker: string;
   heading: string;
   sub: string;
   cases: Case[];
+  wh: Wh;
 }
 
-const { kicker, heading, sub, cases } = Astro.props;
+const { kicker, heading, sub, cases, wh } = Astro.props;
 ---
 
 <section id="work" class="relative border-t border-paper/10 py-20 sm:py-28">
@@ -69,6 +81,42 @@ const { kicker, heading, sub, cases } = Astro.props;
           </article>
         ))
       }
+    </div>
+
+    <!-- warehouse click-to-store mini-game (JS only) -->
+    <div class="toy reveal mt-10 border border-paper/10 bg-ink-2 p-5" data-wh data-i18n={JSON.stringify(wh)}>
+      <div class="flex items-baseline justify-between gap-4">
+        <p class="font-mono text-[10px] tracking-widest text-faint uppercase">{wh.title}</p>
+        <p class="font-mono text-xs font-bold text-acid" data-wh-count>{wh.slotsLabel.toUpperCase()} 00/12</p>
+      </div>
+
+      <div class="mt-4">
+        <p class="font-mono text-[10px] tracking-widest text-faint uppercase">{wh.queueLabel}</p>
+        <div class="wh-queue mt-2" data-wh-queue></div>
+      </div>
+
+      <div class="wh-grid mt-4" data-wh-grid role="group" aria-label={wh.slotsLabel}>
+        {Array.from({ length: 12 }, (_, i) => <button type="button" class="wh-slot" data-slot={i} />)}
+      </div>
+
+      <div class="mt-4 flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          data-wh-optimize
+          class="border border-acid/50 px-3 py-1.5 font-mono text-[11px] tracking-wider text-acid uppercase transition-colors hover:bg-acid hover:text-ink"
+        >
+          {wh.optimize}
+        </button>
+        <button
+          type="button"
+          data-wh-reset
+          class="border border-paper/25 px-3 py-1.5 font-mono text-[11px] tracking-wider text-paper uppercase transition-colors hover:border-acid hover:text-acid"
+        >
+          {wh.reset}
+        </button>
+        <p class="font-mono text-xs text-warm" data-wh-msg hidden>{wh.full}</p>
+      </div>
+      <p class="mt-3 font-mono text-[10px] text-faint">{wh.hint}</p>
     </div>
   </div>
 </section>

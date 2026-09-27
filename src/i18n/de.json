@@ -39,7 +39,37 @@
       "identity ................ LUCA STACH"
     ],
     "initGranted": "ACCESS GRANTED",
-    "initSkip": "any key — skip"
+    "initSkip": "any key — skip",
+    "terminal": {
+      "ariaLabel": "Terminal: Befehl eingeben und Enter drücken",
+      "hint": "interactive — try 'help'",
+      "helpTitle": "available commands:",
+      "commands": [
+        ["help", "diese Übersicht"],
+        ["whoami", "wer ist luca stach"],
+        ["skills", "stack & methoden"],
+        ["contact", "mail & linkedin"],
+        ["cv", "lebenslauf als pdf"],
+        ["social", "linkedin-profil"],
+        ["clear", "terminal leeren"]
+      ],
+      "whoami": [
+        "Luca Stach — BizOps Analyst & AI Builder",
+        "Briem Speditions-GmbH · Münsingen, DE",
+        "baut Systeme, die manuelle Arbeit in messbaren Output verwandeln"
+      ],
+      "skills": [
+        "react · sql server · llm/api-integration · ocr",
+        "prozessanalyse · business cases · excel/vba · git"
+      ],
+      "contact": ["mail → {email}", "in   → {linkedin}"],
+      "cv": "cv → {cv}",
+      "cvLink": "[ download pdf ]",
+      "social": "in → {linkedin} ↗",
+      "socialLink": "[ open linkedin ]",
+      "sudo": "[sudo] zugriff verweigert — root gibt's nur im eigenen system.",
+      "notFound": "{cmd}: command not found — try 'help'"
+    }
   },
   "proof": {
     "kicker": "// proof, not promises",
@@ -72,7 +102,17 @@
         "label": "Note der Bachelorarbeit",
         "detail": "Abschlussnote 2.1 — DHBW Lörrach, BWL Spedition & Logistik"
       }
-    ]
+    ],
+    "calc": {
+      "title": "// modell — was spart das system?",
+      "quotesLabel": "Angebote pro Tag",
+      "minutesLabel": "Minuten pro manuellem Angebot",
+      "hoursLabel": "gesparte Stunden / Jahr",
+      "hoursUnit": "h",
+      "paybackLabel": "Amortisation",
+      "paybackUnit": "Monate",
+      "note": "modell: 67 % Zeitersparnis · 250 Arbeitstage · 25 k€ Baukosten · 45 €/h"
+    }
   },
   "ticker": {
     "items": [
@@ -259,7 +299,17 @@
           "Automotive"
         ]
       }
-    ]
+    ],
+    "wh": {
+      "title": "// mini-game — hochregal",
+      "hint": "paket wählen → freien slot klicken",
+      "queueLabel": "eingang",
+      "slotsLabel": "slots",
+      "optimize": "optimize",
+      "reset": "reset",
+      "full": "warehouse full — optimize?",
+      "pkgLabel": "Paket"
+    }
   },
   "stack": {
     "kicker": "// stack & methods",
@@ -361,7 +411,14 @@
     "certs": [
       "AEVO — Ausbildereignung (AdA)",
       "Verkehrsleiter"
-    ]
+    ],
+    "seq": {
+      "title": "// step-sequencer — 128 bpm",
+      "play": "play",
+      "stop": "stop",
+      "hint": "zellen togglen · play startet audio",
+      "ariaLabel": "Step-Sequencer: 4 Spuren, 8 Steps"
+    }
   },
   "contact": {
     "kicker": "// contact",

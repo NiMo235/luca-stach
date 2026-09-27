@@ -2,6 +2,10 @@ import { initShaderBackground } from './shader-bg';
 import { initHeroScene } from './heroScene';
 import { initScrambleEffects } from './scramble';
 import { initMicro } from './micro';
+import { initTerminal } from './terminal';
+import { initRoi } from './roi';
+import { initWarehouse } from './warehouse';
+import { initSequencer } from './sequencer';
 
 const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -10,7 +14,7 @@ const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)
 /* ------------------------------------------------------------------ */
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
-function makeTypewriter(skipped: () => boolean) {
+export function makeTypewriter(skipped: () => boolean) {
   /* human cadence: random per-char jitter, pauses on spaces/punctuation */
   const typeText = async (el: HTMLElement, text: string, base = 26) => {
     for (let i = 0; i < text.length; i++) {
@@ -383,3 +387,9 @@ setupTerminalEasterEgg();
 
 initScrambleEffects(prefersReducedMotion);
 initMicro();
+
+/* station toys: interactive terminal, ROI model, warehouse game, sequencer */
+initTerminal(prefersReducedMotion);
+initRoi(prefersReducedMotion);
+initWarehouse(prefersReducedMotion);
+initSequencer();
