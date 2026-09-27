@@ -15,6 +15,11 @@ interface Props {
     audioOn: string;
     stationsLabel: string;
     stations: HudStation[];
+    tcTitle: string;
+    tcSubtitle: string;
+    tcTriangles: string;
+    tcParts: string;
+    tcFps: string;
   };
   langLabel: string;
   langHref: string;
@@ -53,6 +58,16 @@ const langUrl = `${import.meta.env.BASE_URL}${langHref.replace(/^\//, '')}`;
     <span>{hud.velocityLabel} <b class="hud-val" data-hud-vel>0.0c</b></span>
     <span>{hud.stationLabel} <b class="hud-val" data-hud-station>01/07</b></span>
     <span>{hud.posLabel} <b class="hud-val" data-hud-pos>X+000.0 Y+000.0 Z+000.0</b></span>
+  </div>
+
+  <div class="hud-titlecard" aria-hidden="true">
+    <p class="hud-tc-title">{hud.tcTitle}</p>
+    <p class="hud-tc-sub">{hud.tcSubtitle}</p>
+    <p class="hud-tc-stats">
+      <span>{hud.tcTriangles} <b class="hud-val" data-tc-tris>—</b></span>
+      <span>{hud.tcParts} <b class="hud-val" data-tc-parts>—</b></span>
+      <span>{hud.tcFps} <b class="hud-val" data-tc-fps>—</b></span>
+    </p>
   </div>
 
   <div class="hud-audio">

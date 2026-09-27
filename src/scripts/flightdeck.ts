@@ -38,9 +38,9 @@ export async function initFlightdeck(): Promise<boolean> {
   );
 
   /* ---- world (lazy three.js chunk) ---- */
-  let world: import('./flightworld').FlightWorld;
+  let world: import('./halle').FlightWorld;
   try {
-    const m = await import('./flightworld');
+    const m = await import('./halle');
     world = m.createWorld(canvas);
   } catch {
     return false;

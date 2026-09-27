@@ -308,9 +308,31 @@
   pointer-events: none;
   font-family: var(--font-mono);
   font-size: 10px;
-  letter-spacing: 0.14em;
-  color: var(--color-dim);
+  letter-spacing: 0.14em;  color: var(--color-dim);
   text-transform: uppercase;
+}
+/* legibility scrims: soft dark gradients behind the left HUD column
+   (station rail) and the bottom-left cluster (telemetry + title card),
+   so they stay readable over bright rack content */
+.flightdeck #flight-hud::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 260px;
+  background: linear-gradient(90deg, rgba(10, 13, 10, 0.75), transparent);
+  pointer-events: none;
+  z-index: -1;
+}
+.flightdeck #flight-hud::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 640px;
+  height: 150px;
+  background: linear-gradient(0deg, rgba(10, 13, 10, 0.72), transparent);
+  pointer-events: none;
+  z-index: -1;
 }
 #flight-hud .hud-corner {
   position: absolute;
@@ -446,6 +468,43 @@
   display: flex;
   align-items: flex-end;
   gap: 10px;
+}
+
+/* title card — bottom row, right of the telemetry readout (stays
+   clear of the left-low LOG panel and the station rail) */
+#flight-hud .hud-titlecard {
+  position: absolute;
+  left: 264px;
+  bottom: 22px;
+  text-align: left;
+  display: block; /* <p> children stay inline-able (flex would blockify) */
+  pointer-events: none;
+}
+/* title + subtitle share one line, stats row below */
+#flight-hud .hud-tc-title,
+#flight-hud .hud-tc-sub {
+  display: inline;
+}
+#flight-hud .hud-tc-sub {
+  margin-left: 10px;
+}
+#flight-hud .hud-tc-title {
+  color: var(--color-acid);
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-shadow: 0 0 14px color-mix(in srgb, var(--color-acid) 45%, transparent);
+}
+#flight-hud .hud-tc-sub {
+  color: var(--color-faint);
+}
+#flight-hud .hud-tc-stats {
+  display: flex;
+  justify-content: flex-start;
+  gap: 12px;
+}
+#flight-hud .hud-tc-stats b {
+  color: var(--color-acid);
+  font-weight: 500;
 }
 #flight-hud .hud-eq {
   display: flex;

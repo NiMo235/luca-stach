@@ -140,6 +140,11 @@
     "audioOff": "AUDIO: OFF",
     "audioOn": "AUDIO: ON",
     "stationsLabel": "stations",
+    "tcTitle": "DIE HALLE",
+    "tcSubtitle": "Echtzeit-Modell · prozedurale Geometrie",
+    "tcTriangles": "triangles",
+    "tcParts": "parts",
+    "tcFps": "fps",
     "stations": [
       {
         "id": "top",
