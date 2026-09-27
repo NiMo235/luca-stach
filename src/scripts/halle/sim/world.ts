@@ -215,11 +215,13 @@ export function createSim(seed = 1337): Sim {
   const trucks = createTrucks(DOORS.slice(0, 4).map((d) => d.x), rnd);
 
   /* two pallets ride on the RBG carriages */
+  const rbgPallet = [-1, -1];
   rbgs.forEach((r, i) => {
     const p = freePallet();
     if (p >= 0) {
       pallets[p].mode = 'rbg';
       pallets[p].rbg = i;
+      rbgPallet[i] = p;
     }
   });
   const truckUnloadTimer = [0, 0, 0, 0];
@@ -465,12 +467,16 @@ export function createSim(seed = 1337): Sim {
 
   function dispatch(): void {
     let transit = transitCount();
-    /* assign queued orders to the longest-parked AGVs first */
+    /* assign queued orders to the longest-parked AGVs first —
+       manual scan, no filter/sort allocations in the tick (B9) */
     for (;;) {
       if (transit >= MAX_TRANSIT || orders.queue.length === 0) break;
-      const idle = agvs
-        .filter((a) => a.state === 'parked' && a.battery > 30 && !a.hold)
-        .sort((x, y) => x.idleSince - y.idleSince)[0];
+      let idle: Agv | null = null;
+      for (const a of agvs) {
+        if (a.state === 'parked' && a.battery > 30 && !a.hold) {
+          if (!idle || a.idleSince < idle.idleSince) idle = a;
+        }
+      }
       if (!idle) break;
       const o = orders.dispatch()!;
       /* reserve the source pallet so the visual stays causal */
@@ -560,12 +566,12 @@ export function createSim(seed = 1337): Sim {
       }
     }
 
-    /* shuttles / RBGs */
+    /* shuttles / RBGs (RBG pallet index cached — no per-tick find) */
     for (const s of shuttles) stepShuttle(s, STEP, rnd);
     rbgs.forEach((r, i) => {
       stepRbg(r, STEP, rnd);
-      const pl = pallets.find((p) => p.mode === 'rbg' && p.rbg === i);
-      if (pl) {
+      if (rbgPallet[i] >= 0) {
+        const pl = pallets[rbgPallet[i]];
         pl.x = r.x;
         pl.z = r.z;
         pl.y = r.liftY + 0.35;

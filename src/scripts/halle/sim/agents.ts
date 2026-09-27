@@ -126,6 +126,9 @@ export function edgeHeading(ei: number): number {
   return Math.atan2(x1 - x0, z1 - z0); // three.js yaw convention (y-up)
 }
 
+/* scratch for edgePos — no per-tick allocation (B9) */
+const TMP_POS = { x: 0, z: 0 };
+
 /* one fixed-step movement tick for a single AGV */
 export function stepAgv(a: Agv, dt: number, ctx: AgvCtx): void {
   if (a.edge < 0) {
@@ -176,10 +179,9 @@ export function stepAgv(a: Agv, dt: number, ctx: AgvCtx): void {
   a.s += a.v * dt;
   if (a.s > e.len) a.s = e.len;
 
-  const pos = { x: a.x, z: a.z };
-  edgePos(a.edge, a.s, pos);
-  a.x = pos.x;
-  a.z = pos.z;
+  edgePos(a.edge, a.s, TMP_POS);
+  a.x = TMP_POS.x;
+  a.z = TMP_POS.z;
   a.heading = edgeHeading(a.edge);
 
   /* release the node behind once the tail has cleared it */

@@ -162,22 +162,29 @@ export function createSimRender(scene: THREE.Scene, sim: Sim): SimRender {
   /* ---- LKW: Trailer + Zugmaschine + Schlusslichter (instanced) ---- */
   const trailerGeo = new THREE.BoxGeometry(2.55, 2.7, 12.5);
   trailerGeo.translate(0, 1.75, 0);
-  const trailerMat = new THREE.MeshStandardMaterial({ color: 0x2a3138, metalness: 0.5, roughness: 0.55 });
+  const trailerMat = new THREE.MeshStandardMaterial({ color: 0x525e6a, metalness: 0.5, roughness: 0.55 });
   const trailers = new THREE.InstancedMesh(trailerGeo, trailerMat, 4);
   trailers.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   trailers.frustumCulled = false;
   const cabGeo = new THREE.BoxGeometry(2.5, 2.5, 3.0);
   cabGeo.translate(0, 1.5, 0);
-  const cabMat = new THREE.MeshStandardMaterial({ color: 0x39424a, metalness: 0.6, roughness: 0.45 });
+  const cabMat = new THREE.MeshStandardMaterial({ color: 0x5a6672, metalness: 0.6, roughness: 0.45 });
   const cabs = new THREE.InstancedMesh(cabGeo, cabMat, 4);
   cabs.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   cabs.frustumCulled = false;
-  const tailGeo = new THREE.BoxGeometry(0.22, 0.13, 0.07);
-  const tailMat = new THREE.MeshBasicMaterial({ color: 0x8c1f16 });
+  const tailGeo = new THREE.BoxGeometry(0.3, 0.2, 0.08);
+  const tailMat = new THREE.MeshBasicMaterial({ color: 0xff2a20 });
   const tails = new THREE.InstancedMesh(tailGeo, tailMat, 8);
   tails.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   tails.frustumCulled = false;
-  scene.add(trailers, cabs, tails);
+  /* backed-in trailers show their rear DOORS to the hall: light panel */
+  const rearGeo = new THREE.BoxGeometry(2.35, 2.45, 0.07);
+  rearGeo.translate(0, 1.8, 0);
+  const rearMat = new THREE.MeshStandardMaterial({ color: 0x8f98a2, metalness: 0.3, roughness: 0.7 });
+  const rears = new THREE.InstancedMesh(rearGeo, rearMat, 4);
+  rears.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  rears.frustumCulled = false;
+  scene.add(trailers, cabs, tails, rears);
 
   /* ---- hover ring + holo tag ---- */
   const ring = new THREE.Mesh(
@@ -348,8 +355,11 @@ export function createSimRender(scene: THREE.Scene, sim: Sim): SimRender {
         P.z = z - 7.8;
         m4.compose(P, Q, S);
         cabs.setMatrixAt(i, m4);
-        /* tail lights at the trailer rear */
-        P.set(t.x - 1.0, 0.95, z - 6.3);
+        /* rear doors + tail lights face the HALL (backed-in trailer) */
+        P.set(t.x, 0, z + 6.32);
+        m4.compose(P, Q, S);
+        rears.setMatrixAt(i, m4);
+        P.set(t.x - 1.0, 0.95, z + 6.38);
         m4.compose(P, Q, S);
         tails.setMatrixAt(i * 2, m4);
         P.x = t.x + 1.0;
@@ -389,7 +399,7 @@ export function createSimRender(scene: THREE.Scene, sim: Sim): SimRender {
       }
     },
     dispose() {
-      scene.remove(agvMesh, bars, strips, shadows, palletMesh, shuttles, trailers, cabs, tails, ring, tag);
+      scene.remove(agvMesh, bars, strips, shadows, palletMesh, shuttles, trailers, cabs, tails, rears, ring, tag);
       for (const u of rbgUnits) scene.remove(u.frame, u.lift);
     },
   };

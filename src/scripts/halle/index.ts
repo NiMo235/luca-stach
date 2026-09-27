@@ -226,6 +226,14 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
           trucks: sim.trucks.map((t) => ({ door: t.door, phase: t.phase, z: +t.z.toFixed(1) })),
         };
       },
+      /* project any world point to screen px (shot scripts) */
+      project(x: number, y: number, z: number): unknown {
+        tmpV.set(x, y, z).project(camera);
+        return {
+          sx: +(((tmpV.x + 1) / 2) * window.innerWidth).toFixed(0),
+          sy: +(((1 - tmpV.y) / 2) * window.innerHeight).toFixed(0),
+        };
+      },
       /* probe for tests/shots: world pos + status + screen projection */
       probe(id: number): unknown {
         const a = sim.agvs[id];
@@ -345,9 +353,8 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
             elTcTransit.textContent = tr;
             telCache.transit = tr;
           }
-          const dw = sim.stats.avgDwell;
-          /* until the first order completes there is no dwell to average */
-          const ds = sim.stats.completed > 0 ? `${Math.floor(dw / 60)}:${pad2(Math.round(dw % 60))}` : '—';
+          const dw = sim.stats.avgDwell; // starts at the model seed (DWELL_SEED)
+          const ds = `${Math.floor(dw / 60)}:${pad2(Math.round(dw % 60))}`;
           if (ds !== telCache.dwell && elTcDwell) {
             elTcDwell.textContent = ds;
             telCache.dwell = ds;
