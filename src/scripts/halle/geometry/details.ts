@@ -6,8 +6,8 @@
 /* ------------------------------------------------------------------ */
 
 import * as THREE from 'three';
-import { GALLERY, MEZZ, LEITSTAND, CAGE, LOUNGE, RACKS, DOORS, COL } from '../layout';
-import { GeoBatch, canvasTexture } from '../util';
+import { GALLERY, MEZZ, LEITSTAND, CAGE, LOUNGE, RACKS, DOORS, HALL, COL } from '../layout';
+import { GeoBatch, canvasTexture, rng } from '../util';
 
 export interface PulseTargets {
   acid: THREE.MeshBasicMaterial;
@@ -66,10 +66,10 @@ function screenTexture(): THREE.CanvasTexture {
     ctx.stroke();
     ctx.font = '700 22px "JetBrains Mono", monospace';
     ctx.fillStyle = 'rgba(125,255,216,0.9)';
-    ctx.fillText('LEITSTAND', 24, 40);
+    ctx.fillText('CTRL · 02', 24, 40);
     ctx.fillStyle = 'rgba(180,255,57,0.7)';
     ctx.font = '14px "JetBrains Mono", monospace';
-    ctx.fillText('-67% · 5 PROZESSE · 1.4', 280, 160);
+    ctx.fillText('-67% · 5 · 1.4', 280, 160);
   });
 }
 
@@ -371,27 +371,179 @@ export function buildDetails(scene: THREE.Scene): { parts: number; pulse: PulseT
     add(platters.mesh(amberMat, false, false));
   }
 
-  /* ================= light strips along aisles + walkway ================= */
+  /* ================= light strips — always mounted ON structure =====
+     (floating mid-air lines read as rendering bugs) */
   {
     const strips = new GeoBatch();
     for (const ax of RACKS.aislesX) {
-      strips.box(0.14, 0.05, RACKS.z1 - RACKS.z0 - 1, ax, 11.85, (RACKS.z0 + RACKS.z1) / 2);
+      /* mounted on top of the rack top beams (beam top ≈ 11.07) */
+      strips.box(0.14, 0.05, RACKS.z1 - RACKS.z0 - 1, ax, 11.12, (RACKS.z0 + RACKS.z1) / 2);
     }
-    strips.box(92, 0.06, 0.06, -12, 8.2, 27.6); // south walkway strip
+    /* wall-mounted strip above the south walkway */
+    strips.box(92, 0.07, 0.05, -12, 7.6, 29.66);
     add(strips.mesh(acidMat, false, false));
 
     const cyanStrips = new GeoBatch();
-    cyanStrips.box(54, 0.05, 0.05, 5, 9.6, -13.2); // north loop line, cyan
-    cyanStrips.box(0.05, 0.05, 26, 32.2, 9.2, 0); // east spine
+    /* slung under the cable tray at z = -6 (tray underside ≈ 12.5) */
+    cyanStrips.box(54, 0.05, 0.05, 5, 12.4, -6.42);
+    /* wall-mounted on the east wall, above the mezzanine */
+    cyanStrips.box(0.05, 0.07, 24, 59.66, 8.4, 14);
     add(cyanStrips.mesh(cyanMat, false, false));
+  }
+
+  /* ================= high-bay luminaires: fixtures + fake volumetrics
+     + light pools on the floor ================= */
+  {
+    /* lamp positions: above the three rack aisles, the crossing and
+       the dock approach — matches the spot lights below */
+    const lamps: Array<[number, number]> = [];
+    for (const ax of RACKS.aislesX) {
+      for (const z of [-10, 0, 10]) lamps.push([ax, z]);
+    }
+    lamps.push([10, 0], [-14, 0], [-38, -22], [-50, -22]);
+
+    const fixGeo = new THREE.CylinderGeometry(0.42, 0.34, 0.28, 10);
+    const fixMat = new THREE.MeshStandardMaterial({ color: 0x2a2f35, metalness: 0.8, roughness: 0.4 });
+    const fixtures = new THREE.InstancedMesh(fixGeo, fixMat, lamps.length);
+    const lensGeo = new THREE.CylinderGeometry(0.3, 0.3, 0.05, 10);
+    const lenses = new THREE.InstancedMesh(lensGeo, acidMat, lamps.length);
+    const m4 = new THREE.Matrix4();
+    lamps.forEach(([x, z], i) => {
+      m4.makeTranslation(x, 12.3, z);
+      fixtures.setMatrixAt(i, m4);
+      m4.makeTranslation(x, 12.14, z);
+      lenses.setMatrixAt(i, m4);
+    });
+    fixtures.instanceMatrix.needsUpdate = true;
+    lenses.instanceMatrix.needsUpdate = true;
+    add(fixtures);
+    add(lenses);
+
+    /* fake light cones: additive, soft-edged via vertex-alpha texture */
+    const coneTex = canvasTexture(64, 128, (ctx, W, H) => {
+      const g = ctx.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, 'rgba(255,255,255,0.55)');
+      g.addColorStop(0.6, 'rgba(255,255,255,0.14)');
+      g.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, W, H);
+    });
+    const coneMat = new THREE.MeshBasicMaterial({
+      map: coneTex,
+      color: 0x9fb872,
+      transparent: true,
+      opacity: 0.16,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+      fog: false,
+    });
+    const coneGeo = new THREE.CylinderGeometry(0.34, 3.6, 12.1, 12, 1, true);
+    /* remap uv so v=1 (bright) is at the top of the cone */
+    const cones = new THREE.InstancedMesh(coneGeo, coneMat, lamps.length);
+    lamps.forEach(([x, z], i) => {
+      m4.makeTranslation(x, 6.1, z);
+      cones.setMatrixAt(i, m4);
+    });
+    cones.instanceMatrix.needsUpdate = true;
+    add(cones);
+
+    /* warm pools of light on the floor under each lamp */
+    const poolTex = canvasTexture(128, 128, (ctx, W, H) => {
+      const g = ctx.createRadialGradient(W / 2, H / 2, 4, W / 2, H / 2, W / 2);
+      g.addColorStop(0, 'rgba(255,255,255,0.5)');
+      g.addColorStop(0.55, 'rgba(255,255,255,0.16)');
+      g.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, W, H);
+    });
+    const poolMat = new THREE.MeshBasicMaterial({
+      map: poolTex,
+      color: 0x8aa056,
+      transparent: true,
+      opacity: 0.5,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    const pools = new THREE.InstancedMesh(new THREE.PlaneGeometry(9.5, 9.5), poolMat, lamps.length);
+    const qFlat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2);
+    const P = new THREE.Vector3();
+    const ONE = new THREE.Vector3(1, 1, 1);
+    lamps.forEach(([x, z], i) => {
+      P.set(x, 0.03, z);
+      m4.compose(P, qFlat, ONE);
+      pools.setMatrixAt(i, m4);
+    });
+    pools.instanceMatrix.needsUpdate = true;
+    add(pools);
+  }
+
+  /* ================= fake AO: soft contact-shadow decals =============
+     one instanced quad with a radial black gradient, stretched under
+     racks, gallery, mezzanine, Leitstand, cage, doors and pallets */
+  {
+    const aoTex = canvasTexture(128, 128, (ctx, W, H) => {
+      const g = ctx.createRadialGradient(W / 2, H / 2, 6, W / 2, H / 2, W / 2);
+      g.addColorStop(0, 'rgba(255,255,255,0.85)');
+      g.addColorStop(0.7, 'rgba(255,255,255,0.35)');
+      g.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, W, H);
+    });
+    const aoMat = new THREE.MeshBasicMaterial({
+      map: aoTex,
+      color: 0x000000,
+      transparent: true,
+      opacity: 0.55,
+      depthWrite: false,
+      polygonOffset: true,
+      polygonOffsetFactor: -1,
+    });
+    const blobs: Array<[number, number, number, number]> = []; // x, z, sx, sz
+    for (const rx of RACKS.rowsX) {
+      blobs.push([rx, (RACKS.z0 + RACKS.z1) / 2, RACKS.depth + 2.4, RACKS.z1 - RACKS.z0 + 2.5]);
+    }
+    blobs.push([-39, 26.8, 36, 6.5]); // visitor gallery
+    blobs.push([47, 15, 24, 28]); // mezzanine footprint
+    blobs.push([47, 22, 16, 12]); // Leitstand
+    blobs.push([51, -24, 15.5, 11.5]); // Gefahrgut cage
+    blobs.push([-45.5, 24.75, 26, 9.5]); // Pausenraum
+    for (const d of DOORS) blobs.push([d.x, HALL.Z0 + 1.2, d.w + 2.5, 4]);
+    /* staged floor pallets at the rack front */
+    const rndAO = rng(77);
+    for (let k = 0; k < 14; k++) blobs.push([-36 + rndAO() * 7, -8 + rndAO() * 20, 2.2, 2.6]);
+
+    const ao = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), aoMat, blobs.length);
+    const qFlat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2);
+    const m4 = new THREE.Matrix4();
+    const P = new THREE.Vector3();
+    const SC = new THREE.Vector3();
+    blobs.forEach(([x, z, sx, sz], i) => {
+      P.set(x, 0.02, z);
+      SC.set(sx, sz, 1);
+      m4.compose(P, qFlat, SC);
+      ao.setMatrixAt(i, m4);
+    });
+    ao.instanceMatrix.needsUpdate = true;
+    add(ao);
   }
 
   /* ================= local work lights ================= */
   for (const ax of RACKS.aislesX) {
-    const spot = new THREE.SpotLight(0xc9ff70, 380, 34, 0.62, 0.65, 1.8);
+    const spot = new THREE.SpotLight(0xc9ff70, 540, 36, 0.66, 0.6, 1.7);
     spot.position.set(ax, 12.2, 0);
     spot.target.position.set(ax, 0, 0);
     scene.add(spot, spot.target);
+  }
+  /* cool wash over the WORK crossing — contrast to the acid aisles */
+  for (const [x, z] of [
+    [10, 0],
+    [-14, 0],
+  ]) {
+    const cool = new THREE.SpotLight(0x9fc4ff, 330, 40, 0.72, 0.7, 1.7);
+    cool.position.set(x, 12.4, z);
+    cool.target.position.set(x, 0, z);
+    scene.add(cool, cool.target);
   }
   const loungeLight = new THREE.PointLight(COL.amber, 75, 24, 1.9);
   loungeLight.position.set((LOUNGE.x0 + LOUNGE.x1) / 2, 2.9, (LOUNGE.z0 + LOUNGE.z1) / 2);
@@ -419,7 +571,7 @@ export function buildDetails(scene: THREE.Scene): { parts: number; pulse: PulseT
   };
   mk('01 · BOOT', ACID, -38, 8.6, 26);
   mk('02 · PROOF', CYAN, 47, 8.6, 21.5);
-  mk('03 · LOG', ACID, -49.6, 13.6, 12);
+  mk('03 · LOG', ACID, -49.6, 12.5, 12);
   mk('04 · WORK', CYAN, 6, 10.2, 0);
   mk('05 · STACK', ACID, 46, 10.8, 12);
   mk('06 · BEYOND', AMBER, -45, 7.6, 24.5);

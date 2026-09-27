@@ -6,7 +6,7 @@
 
 import * as THREE from 'three';
 import { RACKS, RACK_BAY_W } from '../layout';
-import { rng } from '../util';
+import { rng, canvasTexture } from '../util';
 
 const M4 = new THREE.Matrix4();
 const Q = new THREE.Quaternion();
@@ -31,6 +31,52 @@ const LOAD_COLORS = [
   0x5d6b53, // olive
 ];
 
+/* EUR pallet: deck boards with gaps + blocks, drawn once */
+function palletTexture(): THREE.CanvasTexture {
+  return canvasTexture(128, 128, (ctx, W, H) => {
+    ctx.fillStyle = '#2c2318'; // gaps/shadow between boards
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#9a7f5b';
+    for (let i = 0; i < 5; i++) {
+      ctx.fillRect(0, i * 26 + 2, W, 20); // deck boards
+    }
+    ctx.fillStyle = 'rgba(60,45,30,0.6)';
+    for (const bx of [8, W / 2 - 8, W - 24]) {
+      ctx.fillRect(bx, 0, 16, H); // blocks showing through the gaps
+    }
+    ctx.fillStyle = 'rgba(255,240,210,0.10)';
+    for (let i = 0; i < 5; i++) ctx.fillRect(0, i * 26 + 2, W, 3); // board top edge
+  });
+}
+
+/* carton sides: kraft base + tape strip + label patch — kept bright,
+   the per-instance color tints it (foil gray, IBC white, drum blue …) */
+function cartonTexture(): THREE.CanvasTexture {
+  return canvasTexture(128, 128, (ctx, W, H) => {
+    ctx.fillStyle = '#cfc4b2';
+    ctx.fillRect(0, 0, W, H);
+    /* kraft paper noise */
+    const rnd = rng(23);
+    for (let i = 0; i < 300; i++) {
+      const g = 170 + rnd() * 60;
+      ctx.fillStyle = `rgba(${g},${g - 12},${g - 40},0.25)`;
+      ctx.fillRect(rnd() * W, rnd() * H, 2, 2);
+    }
+    /* tape strip across the top edge */
+    ctx.fillStyle = 'rgba(120,100,70,0.85)';
+    ctx.fillRect(W / 2 - 7, 0, 14, H);
+    ctx.fillStyle = 'rgba(255,255,255,0.14)';
+    ctx.fillRect(W / 2 - 7, 0, 3, H);
+    /* shipping label */
+    ctx.fillStyle = '#e8e6df';
+    ctx.fillRect(14, H - 44, 44, 30);
+    ctx.fillStyle = '#3a3a38';
+    for (let k = 0; k < 4; k++) ctx.fillRect(18, H - 39 + k * 6, 36 - k * 7, 2.5);
+    ctx.fillStyle = '#b4ff39';
+    ctx.fillRect(14, H - 47, 44, 3);
+  });
+}
+
 export function buildRacks(scene: THREE.Scene): { parts: number } {
   let parts = 0;
   const add = (o: THREE.Object3D) => {
@@ -44,7 +90,8 @@ export function buildRacks(scene: THREE.Scene): { parts: number } {
 
   /* ---- uprights (instanced columns, two per frame position) ---- */
   const upGeo = new THREE.BoxGeometry(0.1, uprightH, 0.1);
-  const upMat = new THREE.MeshStandardMaterial({ color: 0x33424f, metalness: 0.75, roughness: 0.45 });
+  /* classic rack look: blue uprights, orange beams */
+  const upMat = new THREE.MeshStandardMaterial({ color: 0x2e5194, metalness: 0.65, roughness: 0.42 });
   const nUp = rowsX.length * (bays + 1) * 2;
   const uprights = new THREE.InstancedMesh(upGeo, upMat, nUp);
   let ui = 0;
@@ -61,7 +108,7 @@ export function buildRacks(scene: THREE.Scene): { parts: number } {
 
   /* ---- beams (Traversen) ---- */
   const beamGeo = new THREE.BoxGeometry(0.09, 0.14, RACK_BAY_W - 0.08);
-  const beamMat = new THREE.MeshStandardMaterial({ color: 0x7c5220, metalness: 0.5, roughness: 0.55 });
+  const beamMat = new THREE.MeshStandardMaterial({ color: 0xc8681c, metalness: 0.45, roughness: 0.5 });
   const nBeam = rowsX.length * bays * levels * 2;
   const beams = new THREE.InstancedMesh(beamGeo, beamMat, nBeam);
   let bi = 0;
@@ -92,15 +139,16 @@ export function buildRacks(scene: THREE.Scene): { parts: number } {
   bars.instanceMatrix.needsUpdate = true;
   add(bars);
 
-  /* ---- acid row-end guards ---- */
-  const guardGeo = new THREE.BoxGeometry(0.2, 0.65, 0.2);
-  const guardMat = new THREE.MeshStandardMaterial({ color: 0x96c22e, metalness: 0.3, roughness: 0.55 });
+  /* ---- row-end guards in industrial yellow (acid read as neon
+     artifacts in the DOCK view) ---- */
+  const guardGeo = new THREE.BoxGeometry(0.2, 0.5, 0.2);
+  const guardMat = new THREE.MeshStandardMaterial({ color: 0x9c8a1c, metalness: 0.25, roughness: 0.65 });
   const guards = new THREE.InstancedMesh(guardGeo, guardMat, rowsX.length * 4);
   let gi = 0;
   for (const rx of rowsX) {
     for (const zEnd of [z0 - 0.35, RACKS.z1 + 0.35]) {
-      setInst(guards, gi++, rx - face, 0.32, zEnd);
-      setInst(guards, gi++, rx + face, 0.32, zEnd);
+      setInst(guards, gi++, rx - face, 0.25, zEnd);
+      setInst(guards, gi++, rx + face, 0.25, zEnd);
     }
   }
   guards.instanceMatrix.needsUpdate = true;
@@ -140,10 +188,15 @@ export function buildRacks(scene: THREE.Scene): { parts: number } {
 
   const nPal = slotList.length;
   const palGeo = new THREE.BoxGeometry(0.9, 0.15, 1.2);
-  const palMat = new THREE.MeshStandardMaterial({ color: 0x8a7150, roughness: 0.95, metalness: 0 });
+  const palMat = new THREE.MeshStandardMaterial({ map: palletTexture(), roughness: 0.95, metalness: 0 });
   const pallets = new THREE.InstancedMesh(palGeo, palMat, nPal);
   const loadGeo = new THREE.BoxGeometry(0.82, 1, 1.1);
-  const loadMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.8, metalness: 0.05 });
+  const loadMat = new THREE.MeshStandardMaterial({
+    map: cartonTexture(),
+    color: 0xffffff,
+    roughness: 0.8,
+    metalness: 0.05,
+  });
   const loads = new THREE.InstancedMesh(loadGeo, loadMat, nPal);
 
   const drumSlots: Array<{ x: number; y: number; z: number }> = [];
@@ -158,7 +211,7 @@ export function buildRacks(scene: THREE.Scene): { parts: number } {
     const h = 0.55 + rnd() * 0.75;
     setInst(loads, li, s.x, s.y + 0.075 + h / 2, s.z, h, (rnd() - 0.5) * 0.06);
     C.setHex(LOAD_COLORS[(rnd() * LOAD_COLORS.length) | 0]);
-    C.multiplyScalar(0.62 + rnd() * 0.26);
+    C.multiplyScalar(0.78 + rnd() * 0.3); // tint the bright carton texture
     loads.setColorAt(li, C);
     li++;
   });

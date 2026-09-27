@@ -11,6 +11,7 @@ export interface Stage {
   renderer: THREE.WebGLRenderer;
   scene: THREE.Scene;
   camera: THREE.PerspectiveCamera;
+  dispose(): void;
 }
 
 export function createStage(canvas: HTMLCanvasElement): Stage {
@@ -21,30 +22,33 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
     powerPreference: 'high-performance',
   });
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.05;
+  renderer.toneMappingExposure = 1.28;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  /* the hall is static in T-101: render the shadow map once after the
+     build (index.ts sets needsUpdate), not per frame */
+  renderer.shadowMap.autoUpdate = false;
   renderer.setClearColor(COL.night, 1);
 
   const scene = new THREE.Scene();
-  scene.fog = new THREE.FogExp2(COL.night, 0.0072);
+  scene.fog = new THREE.FogExp2(COL.night, 0.0062);
 
   /* PMREM from a procedural room — reflections without any HDR asset */
   const pmrem = new THREE.PMREMGenerator(renderer);
   scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-  scene.environmentIntensity = 0.16;
+  scene.environmentIntensity = 0.26;
   pmrem.dispose();
 
   const camera = new THREE.PerspectiveCamera(68, 1, 0.1, 320);
   camera.position.set(-38, 5.4, 25.5);
 
   /* ---- lighting rig: one shadow-casting "moon through skylights"
-     key light, a faint cool fill, and a few local work lights ---- */
-  const hemi = new THREE.HemisphereLight(0x18222e, 0x0a0d0a, 0.28);
+     key light, a faint cool fill, and local work lights (details.ts) ---- */
+  const hemi = new THREE.HemisphereLight(0x24303e, 0x11150f, 0.5);
   scene.add(hemi);
 
-  const moon = new THREE.DirectionalLight(0x9db4dd, 1.2);
+  const moon = new THREE.DirectionalLight(0xa8bce0, 2.0);
   moon.position.set(14, 70, 20);
   moon.target.position.set(-4, 0, -6);
   moon.castShadow = true;
@@ -69,5 +73,12 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
   resize();
   window.addEventListener('resize', resize);
 
-  return { renderer, scene, camera };
+  return {
+    renderer,
+    scene,
+    camera,
+    dispose() {
+      window.removeEventListener('resize', resize);
+    },
+  };
 }

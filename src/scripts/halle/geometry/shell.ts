@@ -95,6 +95,16 @@ function floorTexture(aniso: number): THREE.CanvasTexture {
         }
       }
 
+      /* floor glyphs: the plane's UV flip renders canvas text mirrored
+         vertically in the world — pre-flip so it reads upright */
+      const floorText = (label: string, x: number, z: number) => {
+        ctx.save();
+        ctx.translate(X(x), Z(z));
+        ctx.scale(1, -1);
+        ctx.fillText(label, 0, 0);
+        ctx.restore();
+      };
+
       /* staging boxes + numbers in front of the dock doors */
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -105,14 +115,14 @@ function floorTexture(aniso: number): THREE.CanvasTexture {
         ctx.strokeRect(X(d.x - 3), Z(-27.5), 6 * PXM, 5 * PXM);
         ctx.font = `700 ${2.2 * PXM}px "JetBrains Mono", monospace`;
         ctx.fillStyle = 'rgba(232,236,228,0.30)';
-        ctx.fillText(label, X(d.x), Z(-25));
+        floorText(label, d.x, -25);
       });
 
       /* aisle letters at the south end of each rack aisle */
       ctx.font = `700 ${2.6 * PXM}px "JetBrains Mono", monospace`;
       ctx.fillStyle = 'rgba(180,255,57,0.34)';
       ['A', 'B', 'C'].forEach((a, i) => {
-        ctx.fillText(a, X([-55.4, -49.6, -43.8][i]), Z(18.6));
+        floorText(a, [-55.4, -49.6, -43.8][i], 18.6);
       });
 
       /* hazard striping around the Gefahrgut cage */
