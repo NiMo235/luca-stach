@@ -104,6 +104,28 @@ function labelSprite(text: string, color: THREE.Color, x: number, y: number, z: 
   return { sprite, mat };
 }
 
+/* small operator monitor: dark glass, cyan waveform + bars */
+function monitorTexture(): THREE.CanvasTexture {
+  return canvasTexture(128, 96, (ctx, W, H) => {
+    ctx.fillStyle = '#061312';
+    ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = 'rgba(125,255,216,0.75)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    for (let x = 0; x <= 20; x++) {
+      const px = 8 + x * 5.6;
+      const py = 60 - Math.sin(x * 0.9) * 18 - x * 0.6;
+      if (x === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(180,255,57,0.75)';
+    for (let k = 0; k < 5; k++) ctx.fillRect(10 + k * 9, 78 - k * 4, 5, k * 4 + 4);
+    ctx.fillStyle = 'rgba(125,255,216,0.5)';
+    ctx.fillRect(8, 8, 40, 5);
+  });
+}
+
 export function buildDetails(scene: THREE.Scene): { parts: number; pulse: PulseTargets } {
   let parts = 0;
   const add = (o: THREE.Object3D) => {
@@ -124,9 +146,10 @@ export function buildDetails(scene: THREE.Scene): { parts: number; pulse: PulseT
   });
   const fabric = new THREE.MeshStandardMaterial({ color: 0x2e3336, roughness: 0.95 });
 
-  /* shared emissive materials — the pulse targets */
-  const acidMat = new THREE.MeshBasicMaterial({ color: ACID.clone() });
-  const cyanMat = new THREE.MeshBasicMaterial({ color: CYAN.clone().multiplyScalar(0.85) });
+  /* shared emissive materials — the pulse targets. Acid runs at ~50%
+     base intensity: an accent, not a key light (round-2 feedback) */
+  const acidMat = new THREE.MeshBasicMaterial({ color: ACID.clone().multiplyScalar(0.5) });
+  const cyanMat = new THREE.MeshBasicMaterial({ color: CYAN.clone().multiplyScalar(0.55) });
   const amberMat = new THREE.MeshBasicMaterial({ color: AMBER.clone() });
 
   /* ================= visitor gallery (south, BOOT) ================= */
@@ -155,9 +178,11 @@ export function buildDetails(scene: THREE.Scene): { parts: number; pulse: PulseT
     balustrade.position.set(cx, GALLERY.y + 0.56, GALLERY.z0 + 0.06);
     add(balustrade);
 
-    /* acid strip under the gallery front edge */
+    /* acid strip under the gallery front edge — only the eastern part:
+       the BOOT viewpoint hovers right above the west end, where even a
+       thin strip reads as a glaring beam across the frame */
     const strip = new GeoBatch();
-    strip.box(w, 0.05, 0.05, cx, GALLERY.y - 0.32, GALLERY.z0 + 0.02);
+    strip.box(12, 0.035, 0.035, GALLERY.x1 - 6, GALLERY.y - 0.32, GALLERY.z0 + 0.02);
     add(strip.mesh(acidMat, false, false));
   }
 
@@ -201,9 +226,10 @@ export function buildDetails(scene: THREE.Scene): { parts: number; pulse: PulseT
     }
     add(g.mesh(deckMat, true, true));
 
+    /* acid strip under the deck — only the north run; the west-edge
+       strip crossed the PROOF frame as a glaring horizontal bar */
     const strip = new GeoBatch();
-    strip.box(0.06, 0.06, d, MEZZ.x0 + 0.05, MEZZ.y - 0.28, cz);
-    strip.box(w, 0.06, 0.06, cx, MEZZ.y - 0.28, MEZZ.z0 + 0.05);
+    strip.box(w, 0.04, 0.04, cx, MEZZ.y - 0.28, MEZZ.z0 + 0.05);
     add(strip.mesh(acidMat, false, false));
   }
 
@@ -234,6 +260,28 @@ export function buildDetails(scene: THREE.Scene): { parts: number; pulse: PulseT
     g.box(0.12, 0.78, 0.9, cx + 4.0, fy + 0.39, cz - 1.8);
     add(g.mesh(darkSteel, true, true));
 
+    /* operator monitors: 4 screens in a loose arc on the desks,
+       facing the hall (screens visible from the PROOF viewpoint) */
+    const monTex = monitorTexture();
+    const monMat = new THREE.MeshBasicMaterial({ map: monTex });
+    monMat.color.setScalar(1.25); // lift past ACES compression a touch
+    const monScreens = new GeoBatch();
+    const monStands = new GeoBatch();
+    const monSpots: Array<[number, number, number]> = [
+      [44.1, cz + 1.3, -Math.PI / 2 + 0.32],
+      [45.9, cz + 1.3, -Math.PI / 2 - 0.22],
+      [48.5, cz - 2.0, -Math.PI / 2 + 0.25],
+      [50.3, cz - 2.0, -Math.PI / 2 - 0.3],
+    ];
+    for (const [mx, mz, mry] of monSpots) {
+      const pg = new THREE.PlaneGeometry(0.95, 0.6);
+      monScreens.add(pg, mx, fy + 1.32, mz, mry);
+      monStands.box(0.07, 0.3, 0.07, mx, fy + 0.95, mz);
+      monStands.box(0.34, 0.03, 0.22, mx, fy + 0.82, mz);
+    }
+    add(monScreens.mesh(monMat, false, false));
+    add(monStands.mesh(darkSteel, false, false));
+
     /* glass walls on the two hall-facing sides */
     const gW = new THREE.Mesh(new THREE.PlaneGeometry(w, LEITSTAND.h - 0.3), glass);
     gW.rotation.y = Math.PI / 2;
@@ -243,13 +291,13 @@ export function buildDetails(scene: THREE.Scene): { parts: number; pulse: PulseT
     gS.position.set(cx, fy + LEITSTAND.h / 2, LEITSTAND.z0 + 0.08);
     add(gS);
 
-    /* holo screen on the inner back wall */
-    const screen = new THREE.Mesh(
-      new THREE.PlaneGeometry(6.4, 2.4),
-      new THREE.MeshBasicMaterial({ map: screenTexture() }),
-    );
+    /* holo screen on the inner back wall — larger + brighter, it is
+       the PROOF motif */
+    const screenMat = new THREE.MeshBasicMaterial({ map: screenTexture() });
+    screenMat.color.setScalar(1.45);
+    const screen = new THREE.Mesh(new THREE.PlaneGeometry(8.2, 3.0), screenMat);
     screen.rotation.y = -Math.PI / 2;
-    screen.position.set(LEITSTAND.x1 - 0.4, fy + 1.9, cz);
+    screen.position.set(LEITSTAND.x1 - 0.4, fy + 2.05, cz);
     add(screen);
 
     /* cyan trim under the roof slab */
@@ -347,10 +395,12 @@ export function buildDetails(scene: THREE.Scene): { parts: number; pulse: PulseT
     walls.box(w, 0.18, d, cx, 3.2, cz); // flat roof
     add(walls.mesh(new THREE.MeshStandardMaterial({ color: 0x4a4438, roughness: 0.9 }), true, true));
 
-    /* warm ceiling light panels + wall strip */
+    /* warm ceiling light panels — pushed to the west half so the
+       BEYOND camera reads them as light islands with depth, not as a
+       lampshade glued to the lens + wall strip */
     const warm = new GeoBatch();
-    warm.box(3.4, 0.06, 1.4, cx - 5, 3.1, cz - 1.5);
-    warm.box(3.4, 0.06, 1.4, cx + 4, 3.1, cz + 1);
+    warm.box(3.4, 0.06, 1.4, -52.5, 3.1, 23.2);
+    warm.box(3.4, 0.06, 1.4, -46.5, 3.1, 26.6);
     warm.box(w - 1, 0.05, 0.05, cx, 2.95, LOUNGE.z1 - 0.22);
     add(warm.mesh(amberMat, false, false));
 
@@ -362,7 +412,27 @@ export function buildDetails(scene: THREE.Scene): { parts: number; pulse: PulseT
     furn.box(1.4, 0.4, 0.8, cx - 3.4, 0.2, cz - 0.4); // table
     furn.box(2.4, 0.95, 0.8, cx + 5, 0.48, LOUNGE.z1 - 1.2); // DJ desk
     furn.box(0.9, 1.4, 0.5, LOUNGE.x1 - 1.2, 0.7, cz + 2.2); // gym rack hint
+    /* record shelf on the south wall + low bench near the east wall */
+    furn.box(4.2, 1.5, 0.35, -51, 0.95, 28.5);
+    furn.box(4.0, 0.04, 0.28, -51, 0.7, 28.48);
+    furn.box(4.0, 0.04, 0.28, -51, 1.2, 28.48);
+    furn.box(2.2, 0.5, 0.6, -36, 0.25, 27.5);
     add(furn.mesh(fabric, true, true));
+
+    /* vinyl rows on the shelf — small acid/amber spines */
+    const vinyl = new GeoBatch();
+    for (let k = 0; k < 12; k++) {
+      vinyl.box(0.24, 0.3, 0.05, -52.6 + k * 0.29, 1.36, 28.42);
+    }
+    add(vinyl.mesh(cyanMat, false, false));
+
+    /* floor lamp in the west corner — warm glow dot */
+    const lampPole = new GeoBatch();
+    lampPole.cyl(0.03, 0.05, 1.5, 6, -55.5, 0.75, 27.8);
+    add(lampPole.mesh(darkSteel, false, false));
+    const lampDot = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 6), amberMat);
+    lampDot.position.set(-55.5, 1.58, 27.8);
+    add(lampDot);
 
     /* glowing platter discs on the DJ desk */
     const platters = new GeoBatch();
@@ -376,11 +446,14 @@ export function buildDetails(scene: THREE.Scene): { parts: number; pulse: PulseT
   {
     const strips = new GeoBatch();
     for (const ax of RACKS.aislesX) {
-      /* mounted on top of the rack top beams (beam top ≈ 11.07) */
-      strips.box(0.14, 0.05, RACKS.z1 - RACKS.z0 - 1, ax, 11.12, (RACKS.z0 + RACKS.z1) / 2);
+      /* mounted on top of the rack top beams (beam top ≈ 11.07), thin
+         and shortened to the northern aisle half — the south end came
+         too close to the BOOT viewpoint and read as a glare beam */
+      strips.box(0.09, 0.045, 18, ax, 11.12, -5);
     }
-    /* wall-mounted strip above the south walkway */
-    strips.box(92, 0.07, 0.05, -12, 7.6, 29.66);
+    /* wall-mounted strip above the south walkway — thin, it runs
+       right past the BOOT viewpoint */
+    strips.box(92, 0.04, 0.04, -12, 7.6, 29.66);
     add(strips.mesh(acidMat, false, false));
 
     const cyanStrips = new GeoBatch();
@@ -400,7 +473,7 @@ export function buildDetails(scene: THREE.Scene): { parts: number; pulse: PulseT
     for (const ax of RACKS.aislesX) {
       for (const z of [-10, 0, 10]) lamps.push([ax, z]);
     }
-    lamps.push([10, 0], [-14, 0], [-38, -22], [-50, -22]);
+    lamps.push([10, 0], [-14, 0], [-38, -22], [-50, -22], [47, 22]); // last one: cone over the Leitstand
 
     const fixGeo = new THREE.CylinderGeometry(0.42, 0.34, 0.28, 10);
     const fixMat = new THREE.MeshStandardMaterial({ color: 0x2a2f35, metalness: 0.8, roughness: 0.4 });

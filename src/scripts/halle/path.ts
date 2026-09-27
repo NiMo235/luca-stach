@@ -17,7 +17,7 @@ export const POS_KEYS: Array<[number, number, number]> = [
   [30, 7.5, 10], //       guide: approach over the mezzanine edge
   [45.5, 8.6, 12], // 05 STACK — on the mezzanine
   [-30, 2.7, 12], //      guide: descend north-west of the lounge (open side)
-  [-37, 2.45, 23], // 06 BEYOND — inside the warm Pausenraum
+  [-35.6, 2.35, 21.8], // 06 BEYOND — lounge NE corner, looking into the room
   [-24, 3.8, 4], //       guide: leave north through the open side first
   [-38, 3.8, -17], // 07 DOCK — facing the open TOR 1
 ];
@@ -25,7 +25,7 @@ export const POS_KEYS: Array<[number, number, number]> = [
 export const LOOK_KEYS: Array<[number, number, number]> = [
   [20, 3.0, -18], // 01 hall length + dock glow to the northeast
   [30, 3.5, 5],
-  [50, 3.8, 22], // 02 the Leitstand
+  [46, 3.6, 24], // 02 the Leitstand — glass front + big screen left of the panel
   [-40, 5, 14], //      pan toward the rack block
   [-49.6, 5.2, -10], // 03 straight down the aisle
   [-20, 3, 4],
@@ -33,7 +33,7 @@ export const LOOK_KEYS: Array<[number, number, number]> = [
   [40, 6.5, 10],
   [-20, 4, -2], // 05 from the mezzanine across the hall
   [-30, 2.5, 18], //    pan down toward the lounge
-  [-54, 1.8, 27.5], // 06 deep into the warm lounge corner
+  [-52, 1.5, 27.2], // 06 deep into the warm lounge corner
   [-40, 3, -18],
   [-50.5, 2.6, -29.5], // 07 the open TOR 1 and the yard beyond
 ];

@@ -85,6 +85,9 @@ export function hallColliders(): AABB[] {
     box('lounge-table', -49.2, 0, 23.9, -47.6, 0.45, 24.9),
     box('lounge-djdesk', -41.8, 0, 26.5, -39.2, 1.0, 27.6),
     box('lounge-gym', -35.2, 0, 25.4, -33.6, 1.45, 26.6),
+    box('lounge-shelf', -53.2, 0, 28.2, -48.8, 1.75, 28.8),
+    box('lounge-bench', -37.2, 0, 27.1, -34.8, 0.6, 27.9),
+    box('lounge-floorlamp', -55.7, 0, 27.6, -55.3, 1.7, 28.0),
   );
 
   return out;
