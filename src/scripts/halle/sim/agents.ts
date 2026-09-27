@@ -14,7 +14,7 @@ import { NODES, EDGES } from './graph.ts';
 
 /* ---- tuning -------------------------------------------------------- */
 export const AGV_COUNT = 32;
-export const V_FREE = 2.4; // m/s
+export const V_FREE = 2.8; // m/s
 export const ACCEL = 1.7; // m/s²
 export const DECEL = 2.8; // m/s²
 export const GAP = 3.2; // min center distance on the same edge
@@ -22,7 +22,7 @@ export const STOPLINE = 3.2; // stop this far before a blocked node
 export const RESERVE_DIST = 6.0; // reserve the next node within this range
 export const TAIL_CLEAR = 2.6; // release the previous node after this
 export const CROSSLINE = 0.9; // wait this far before a node whose exit is full
-export const EXIT_ROOM = 8.5; // only enter an edge if its rearmost AGV is past this
+export const EXIT_ROOM = 5.0; // only enter an edge if its rearmost AGV is past this
 export const HOLD_TIMEOUT = 8.0; // s (sim time)
 
 export const AGV_GO = 0;
@@ -189,7 +189,7 @@ export function stepAgv(a: Agv, dt: number, ctx: AgvCtx): void {
   else if (a.state === 'working') a.waitAcc += dt;
 
   /* battery */
-  a.battery = Math.max(0, a.battery - (a.v > 0.03 ? 0.45 : 0.12) * dt);
+  a.battery = Math.max(0, a.battery - (a.v > 0.03 ? 0.25 : 0.1) * dt);
 
   /* arrival: only possible when the node is owned (stop line else) */
   if (a.s >= e.len - 1e-4 && ctx.owner[next] === a.id) {

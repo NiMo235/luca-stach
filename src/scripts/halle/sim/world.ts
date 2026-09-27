@@ -46,10 +46,12 @@ import { rng } from './rand.ts';
 import { DOORS, RACKS } from '../layout.ts';
 
 const STEP = 0.1; // 10 Hz
-const MAX_TRANSIT = 16; // dispatcher cap — deadlock prevention headroom
-const LOAD_T = 3.5;
-const UNLOAD_T = 3.5;
-const PACK_T = 5.0;
+const MAX_TRANSIT = 28; // dispatcher cap — ~87 % of the fleet rolling
+const LOAD_T = 1.8;
+const UNLOAD_T = 1.8;
+const PACK_T = 2.6;
+/* model seed for the dwell KPI until the first real measurement arrives */
+const DWELL_SEED = 9.4;
 
 /* pallet pool */
 export const PALLET_COUNT = 56;
@@ -132,14 +134,20 @@ export function createSim(seed = 1337): Sim {
 
   const orders = createOrders(seed, freePallet);
 
-  /* ---- AGV fleet: 20 parked on slots, 12 pre-seeded in transit ---- */
+  /* ---- AGV fleet: 16 parked on slots, 16 pre-seeded in transit ---- */
   const agvs: Agv[] = [];
   for (let i = 0; i < AGV_COUNT; i++) agvs.push(createAgv(i));
 
-  /* park the first 20 on the apron slots */
-  for (let i = 0; i < SLOT_COUNT; i++) {
+  /* park the first 16 on random apron slots (spread, not a row) */
+  const PARKED_COUNT = 16;
+  const parkOrder = [...SLOT_NODES];
+  for (let i = parkOrder.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    [parkOrder[i], parkOrder[j]] = [parkOrder[j], parkOrder[i]];
+  }
+  for (let i = 0; i < PARKED_COUNT; i++) {
     const a = agvs[i];
-    a.node = SLOT_NODES[i];
+    a.node = parkOrder[i];
     a.state = 'parked';
     a.battery = 80 + rnd() * 20;
     a.idleSince = i * 0.37;
@@ -147,10 +155,10 @@ export function createSim(seed = 1337): Sim {
     const n = NODES[a.node];
     a.x = a.px = n.x;
     a.z = a.pz = n.z;
-    a.heading = i < 10 ? Math.PI : 0; // face the lane
+    a.heading = n.id.startsWith('SK') ? 0 : Math.PI; // face the lane
   }
 
-  /* pre-seed 12 AGVs mid-edge with synthetic in-flight work so the hall
+  /* pre-seed 16 AGVs mid-edge with synthetic in-flight work so the hall
      is busy from the first powered frame */
   const seedLegs: Array<{ from: string; to: string; frac: number; withPallet: boolean }> = [
     { from: 'D4', to: 'D3', frac: 0.5, withPallet: false },
@@ -165,11 +173,15 @@ export function createSim(seed = 1337): Sim {
     { from: 'W2', to: 'W1', frac: 0.5, withPallet: true },
     { from: 'AR2', to: 'AR3', frac: 0.5, withPallet: false },
     { from: 'BPE', to: 'BR1', frac: 0.5, withPallet: true },
+    { from: 'PK', to: 'D4', frac: 0.45, withPallet: true },
+    { from: 'J1', to: 'N1', frac: 0.5, withPallet: false },
+    { from: 'RBO', to: 'RS2', frac: 0.5, withPallet: true },
+    { from: 'S1', to: 'E2', frac: 0.5, withPallet: false },
   ];
   const nameToIdx = new Map<string, number>();
   NODES.forEach((n, i) => nameToIdx.set(n.id, i));
   seedLegs.forEach((leg, k) => {
-    const a = agvs[SLOT_COUNT + k];
+    const a = agvs[PARKED_COUNT + k];
     const from = nameToIdx.get(leg.from)!;
     const to = nameToIdx.get(leg.to)!;
     a.edge = edgeBetween(from, to);
@@ -216,7 +228,7 @@ export function createSim(seed = 1337): Sim {
   let time = 0;
   let acc = 0;
   let rate = 1;
-  const stats: SimStats = { completed: 0, inTransit: 0, avgDwell: 0, queueLen: 0 };
+  const stats: SimStats = { completed: 0, inTransit: 0, avgDwell: DWELL_SEED, queueLen: 0 };
 
   /* edge occupancy for predecessor search, rebuilt per step */
   const edgeOcc: number[][] = EDGES.map(() => []);
@@ -391,7 +403,7 @@ export function createSim(seed = 1337): Sim {
         orders.complete(o);
         stats.completed++;
         const dwell = a.waitAcc + LOAD_T + UNLOAD_T;
-        stats.avgDwell = stats.avgDwell === 0 ? dwell : stats.avgDwell * 0.9 + dwell * 0.1;
+        stats.avgDwell = stats.avgDwell * 0.9 + dwell * 0.1;
         a.waitAcc = 0;
       }
       a.orderId = -1;
@@ -486,12 +498,23 @@ export function createSim(seed = 1337): Sim {
     return -1;
   }
 
-  /* free slot for a returning AGV */
+  /* free slot for a returning AGV — random pick spreads parked AGVs over
+     both apron rows instead of filling from slot 0 (no parking-lot look) */
   function freeParkSlot(): number {
+    let firstFree = -1;
+    let free = 0;
     for (const sn of SLOT_NODES) {
-      if (owner[sn] === -1 && slotTarget[sn] === -1) return sn;
+      if (owner[sn] === -1 && slotTarget[sn] === -1) {
+        free++;
+        if (firstFree < 0) firstFree = sn;
+      }
     }
-    return -1;
+    if (free === 0) return -1;
+    let pick = Math.floor(rnd() * free);
+    for (const sn of SLOT_NODES) {
+      if (owner[sn] === -1 && slotTarget[sn] === -1 && pick-- === 0) return sn;
+    }
+    return firstFree;
   }
 
   function step(): void {
@@ -594,7 +617,7 @@ export function createSim(seed = 1337): Sim {
       return;
     }
     /* battery low or dispatcher wants the slot? park; else keep working */
-    const needCharge = a.battery < 25;
+    const needCharge = a.battery < 15;
     const slot = freeParkSlot();
     if (needCharge && slot >= 0) {
       slotTarget[slot] = a.id;

@@ -77,7 +77,7 @@ export function createOrders(seed: number, palletFree: () => number): OrderSyste
   };
 
   function generate(now: number): void {
-    if (queue.length >= 12) return;
+    if (queue.length >= 16) return;
     const roll = rnd();
     const prio = rnd() < 0.15 ? 1 : 0;
     let o: Order | null = null;
@@ -126,7 +126,7 @@ export function createOrders(seed: number, palletFree: () => number): OrderSyste
     },
     step(now: number) {
       if (now >= nextGen) {
-        nextGen = now + 1.1 + rnd() * 0.9;
+        nextGen = now + 0.8 + rnd() * 0.7;
         generate(now);
       }
     },

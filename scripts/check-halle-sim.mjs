@@ -33,10 +33,14 @@ const ok = (msg) => console.log('  ok', msg);
   const lastMoveTick = sim.agvs.map(() => 0);
   let minDist = Infinity;
   let minDistInfo = '';
+  let movingSum = 0; // "in Fahrt": working (not parked) and actually moving
+  let fleetSamples = 0;
 
   for (let tick = 0; tick < 6000; tick++) {
     sim.step();
     for (const a of sim.agvs) {
+      if (a.state !== 'parked' && a.v > 0.05) movingSum++;
+      fleetSamples++;
       const moved = Math.hypot(a.x - a.px, a.z - a.pz) > 0.005;
       if (moved || a.edge >= 0) {
         if (moved) lastMoveTick[a.id] = tick;
@@ -75,9 +79,13 @@ const ok = (msg) => console.log('  ok', msg);
   console.log(`  completed orders: ${sim.stats.completed}`);
   console.log(`  in transit: ${sim.stats.inTransit} · queue: ${sim.stats.queueLen} · avg dwell: ${sim.stats.avgDwell.toFixed(1)} s`);
   console.log(`  min center distance: ${minDist.toFixed(2)} m (${minDistInfo})`);
+  const movingShare = movingSum / fleetSamples;
+  console.log(`  in Fahrt (moving share, phase A avg): ${(movingShare * 100).toFixed(1)} %`);
   if (sim.stats.completed > 0) ok('orders completed > 0');
   else fail('no orders completed in 10 min');
   if (minDist >= MIN_DIST) ok(`min distance ${minDist.toFixed(2)} m >= ${MIN_DIST} m`);
+  if (movingShare >= 0.7) ok(`moving share ${(movingShare * 100).toFixed(1)} % >= 70 %`);
+  else fail(`fleet too static: only ${(movingShare * 100).toFixed(1)} % moving (< 70 %)`);
 }
 
 /* ---------- phase B: 60 s hold → queue forms → release → dissolves --- */
