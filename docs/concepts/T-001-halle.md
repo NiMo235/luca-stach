@@ -305,3 +305,32 @@ Frame-Time-Messung über die ersten 2,5 s, dann automatische Stufe:
 1. **Name/Framing:** „DIE HALLE" als interner Arbeitstitel — auf der Site bleibt `STACH://FLIGHTDECK` als Brand, die Halle ist die Welt dahinter. Alternativ: `STACH://HALLE`.
 2. **Scroll-Tour bleibt primärer Pfad** (Vorschlag §4.1) vs. komplett freie Navigation mit optionalem „Tour starten"-Button.
 3. **MVP-Umfang T-101** so wie geschnitten, oder sollen Leitstand/Prüfstraße schon in den ersten Baustein?
+
+---
+
+## 12. Entscheidungen (27.09.2026, verbindlich, überschreibt abweichende Stellen oben)
+
+Luca: *„mach wie du es am besten findest, es soll aber nicht mit wasd laufen sein … am besten nur via scrollen und tippen“*
+
+1. **Navigation = nur Scrollen + Tippen/Klicken.**
+   - **Kein Walk-Modus, kein WASD, kein PointerLock, keine OrbitControls.** §4.2 und §4.3 entfallen, T-104 entfällt.
+   - **Scrollen** fährt die Kamera auf einer Kamerafahrt durch die Halle, von Station zu Station (§4.1 bleibt). Die Kamera parkt nie ganz still, sie „atmet“ wie heute.
+   - **Tippen/Klicken** hat zwei Wirkungen:
+     - (a) Holo-Hotspots über den Zonen, Viewpoint-Buttons im HUD und Klicks auf die Minimap lösen eine **Flug-Fahrt** zur Station aus. Das nutzt die bestehende `flyTo`-Logik, Scroll-Position und Tour bleiben also synchron.
+     - (b) Simulationsobjekte am aktuellen Halt sind klickbar: AGV anhalten, Palette anfordern, Konsole umschalten usw.
+   - Maus-Parallax (leichtes Mitschwenken zur Zeigerposition) ist erlaubt. Ziehen ist nicht nötig.
+2. **Simulationsdichte hoch:**
+   - 25–40 AGVs (Q2: 12), dazu Shuttles in den Regalgängen, 2 RBGs und LKW an den Toren. Die Halle muss **voll und geschäftig** wirken, nicht leer.
+   - AGVs sind Instanced. Die Simulation tickt mit 10 Hz auf dem Main-Thread; einen Worker gibt es nur, wenn Messungen es erfordern.
+3. **Branding:** `STACH://FLIGHTDECK` bleibt die Marke. „Die Halle“ ist die Welt dahinter.
+4. **Architektur-Anker:** Die Halle implementiert **dasselbe Interface wie heute** `FlightWorld` in `src/scripts/flightworld.ts`, also `createWorld(canvas)` mit `update(p, transit, dt, now)`, `pulse()`, `drift` und `camera`. Damit bleiben `flightdeck.ts` (Scroll-Rig, Panels, HUD, Audio) und `main.ts` (Gating, Fallbacks) fast unverändert. Die Stationsreihenfolge bleibt BOOT → PROOF → LOG → WORK → STACK → BEYOND → DOCK. Die Kamerafahrt führt räumlich sinnvoll durch die Halle.
+
+### Build-Plan (ersetzt §10)
+| Task | Inhalt |
+|---|---|
+| T-101 | **Halle statisch, aber schon schön.** Modul `src/scripts/halle/` mit FlightWorld-Interface: Hülle, Boden, Dach mit Oberlichtern, Tore, Hochregal (instanced), Look (PMREM, ACES, Physical Materials, Schatten, Farbwelt), 7-Station-Kamerafahrt, Title-Card (tris/parts/fps). `flightdeck.ts` lädt die Halle statt `flightworld`. |
+| T-102 | **Die Halle lebt.** Wegenetz, Reservierung, 25–40 AGVs, Shuttles, RBGs, Power-up-Intro nach dem Cold Boot, Klick auf AGV = anhalten, Stau-Kausalkette sichtbar. |
+| T-103 | **Zonen und Tippen.** Leitstand, Förderloop, Prüfstraße, Gefahrgut-Käfig, Mezzanine, Pausenraum, Verladetore; Holo-Hotspots und Minimap mit Flug-Fahrt per Tipp. |
+| T-104 | **Inhalte interaktiv.** LOG-Paletten mit RBG, Leitstand manuell ↔ Pipeline mit ROI-Migration, Prüfstraße-Slider, DOCK „Kontakt verladen“; Warehouse-Toy fällt weg. |
+| T-105 | **Atmosphäre.** Schicht Früh/Spät/Nacht (Licht und Last), Layer-Toggles, Datenstrom-Layer, Pausenraum mit Sequencer und Audio. |
+| T-106 | **Härtung.** Qualitätsstufen, Performance, i18n DE/EN, A11y, Fallbacks, `flightworld.ts` entfernen, Checkliste. |
