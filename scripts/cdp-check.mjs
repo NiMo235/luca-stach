@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { writeFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, mkdirSync, statSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -59,17 +59,29 @@ await send('Runtime.enable');
 await send('Page.enable');
 await send('Emulation.setDeviceMetricsOverride', { width: 1600, height: 900, deviceScaleFactor: 1, mobile: false });
 await send('Page.navigate', { url: URL });
+await sleep(2500);
+
+/* skip the cold-boot typewriter, then wait for the world to be up */
+await evaluate(`window.dispatchEvent(new KeyboardEvent('keydown'))`);
 await sleep(4000);
 
 const state = await evaluate(`({
   flightdeck: document.documentElement.classList.contains('flightdeck'),
-  pointerFine: matchMedia('(pointer: fine)').matches,
-  wide: matchMedia('(min-width: 1024px)').matches,
-  canvas: !!document.getElementById('flight-canvas'),
+  heroDone: document.documentElement.classList.contains('hero-done'),
   stations: document.querySelectorAll('[data-fly]').length,
   scrollMax: document.documentElement.scrollHeight - innerHeight,
 })`);
 console.log('STATE', JSON.stringify(state));
+
+const PANEL_EXPR = `(() => {
+  const s = document.querySelector('.station-active');
+  if (!s) return null;
+  const p = s.querySelector(':scope > div:not([aria-hidden="true"])');
+  if (!p) return null;
+  const r = p.getBoundingClientRect();
+  return { id: s.id, w: Math.round(r.width), h: Math.round(r.height), x: Math.round(r.x), y: Math.round(r.y),
+    wPct: +(r.width / innerWidth * 100).toFixed(1), hPct: +(r.height / innerHeight * 100).toFixed(1) };
+})()`;
 
 const shots = [];
 for (let i = 0; i < 7; i++) shots.push({ name: `station-${i + 1}`, p: i / 6 });
@@ -78,12 +90,21 @@ shots.push({ name: 'transit-5-6', p: 5 / 6 + 1 / 24 });
 
 for (const s of shots) {
   await evaluate(`window.scrollTo(0, ${s.p} * (document.documentElement.scrollHeight - innerHeight))`);
-  await sleep(1800);
+  await sleep(2400);
   const hud = await evaluate(`document.querySelector('[data-hud-station]')?.textContent`);
+  const panel = await evaluate(PANEL_EXPR);
   const shot = await send('Page.captureScreenshot', { format: 'jpeg', quality: 70 });
   const file = path.join(outDir, `${s.name}.jpg`);
   writeFileSync(file, Buffer.from(shot.result.data, 'base64'));
-  console.log('SHOT', s.name, 'hud=', hud, '->', file);
+  /* right-edge strip: a near-black 60px strip compresses to ~2-3 KB jpeg;
+     content (world visible around the panel) makes it grow */
+  const edge = await send('Page.captureScreenshot', {
+    format: 'jpeg', quality: 70,
+    clip: { x: 1600 - 60, y: 0, width: 60, height: 900, scale: 1 },
+  });
+  const edgeFile = path.join(outDir, `${s.name}-edge.jpg`);
+  writeFileSync(edgeFile, Buffer.from(edge.result.data, 'base64'));
+  console.log('SHOT', s.name, 'hud=', hud, 'panel=', JSON.stringify(panel), 'edgeKB=', (statSync(edgeFile).size / 1024).toFixed(1));
 }
 
 console.log('CONSOLE_ERRORS', consoleErrors.length ? JSON.stringify(consoleErrors, null, 1) : 'none');

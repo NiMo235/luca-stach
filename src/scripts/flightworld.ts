@@ -25,17 +25,29 @@ const WARM_TINT = new THREE.Color('#ffcf9a');
 const STATIONS = 7;
 const SEG = 36; // distance between stations on z
 
-/* camera keyframes: swooping lateral offsets, descending corridor */
+/* camera keyframes: each docked position sits INSIDE its station's
+   scenery (between the data towers, alongside the commit path, in the
+   container yard, within the constellation, in the ring set, on final
+   approach). Stations stay 36 units apart on z; lateral/vertical
+   offsets make every station feel spatially distinct. */
 const CAM_KEYS = [
-  new THREE.Vector3(0, 0.4, 8),
-  new THREE.Vector3(7, -1.2, -SEG),
-  new THREE.Vector3(-6, 1.8, -SEG * 2),
-  new THREE.Vector3(8, -1.8, -SEG * 3),
-  new THREE.Vector3(-8, 1.2, -SEG * 4),
-  new THREE.Vector3(6, -0.8, -SEG * 5),
-  new THREE.Vector3(0, 0.4, -SEG * 6),
+  new THREE.Vector3(0, 0.4, 8), // 01 BOOT — facing the terminal hologram
+  new THREE.Vector3(-2.2, -8.0, -SEG), // 02 PROOF — threading the towers
+  new THREE.Vector3(2.5, 1.0, -SEG * 2), // 03 LOG — alongside the commit path
+  new THREE.Vector3(-1.2, -8.0, -SEG * 3), // 04 WORK — inside the yard
+  new THREE.Vector3(1.8, 1.3, -SEG * 4), // 05 STACK — inside the constellation
+  new THREE.Vector3(0, -1.8, -SEG * 5), // 06 BEYOND — inside the ring set
+  new THREE.Vector3(0, -2.6, -SEG * 6), // 07 DOCK — final approach descent
 ];
-const LOOK_KEYS = CAM_KEYS.map((v) => new THREE.Vector3(v.x * 0.25, v.y * 0.25, v.z - 22));
+const LOOK_KEYS = [
+  new THREE.Vector3(3.5, 1.0, -14),
+  new THREE.Vector3(-4.5, -8.0, -50),
+  new THREE.Vector3(1.0, 1.0, -94),
+  new THREE.Vector3(2.0, -8.0, -124),
+  new THREE.Vector3(-1.0, 0.5, -162),
+  new THREE.Vector3(0, -2.6, -196),
+  new THREE.Vector3(2.5, -4.2, -230), // deck sits left of the contact readout
+];
 
 const BASE_FOV = 75;
 const PUNCH_FOV = 92;
@@ -72,6 +84,8 @@ export interface FlightWorld {
   update(p: number, transit: number, dt: number, now: number): void;
   /** beat pulse from the audio engine (0..1 kick envelope start) */
   pulse(): void;
+  /** normalized docked camera drift (-1..1) for panel counter-parallax */
+  drift: { x: number; y: number };
   camera: THREE.PerspectiveCamera;
 }
 
@@ -343,7 +357,7 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
   /* ---- 01 BOOT: giant terminal hologram ahead of the camera ---- */
   {
     const g = new THREE.Group();
-    g.position.set(0.5, 1.2, -13); // camera starts at (0,0.4,8) looking down -z
+    g.position.set(10, 1.2, -13); // far right of the left-docked hero panel: the typed lines stay clear of it
     const mats: FadeMat[] = [];
 
     /* frame + faint glass body */
@@ -406,10 +420,12 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
   {
     const g = new THREE.Group();
     const mats: FadeMat[] = [];
-    const heights = [4.2, 8.2, 2.4, 4.8, 3.2]; // tallest: -67% Angebotslaufzeit
+    const heights = [5.2, 9.6, 3.4, 6.2, 4.2]; // tallest: -67% Angebotslaufzeit
     const towerMats: THREE.LineBasicMaterial[] = [];
-    const xs = [-10.5, -5.5, 0.5, 5.5, 9.5];
-    const zs = [-48, -43.5, -52, -44, -49.5];
+    /* towers ring the docked camera (-2.2,-8,-36): ahead on both sides,
+       one clipped past on the way in */
+    const xs = [-9.5, -4.5, 1.5, 6.5, 10.5];
+    const zs = [-38, -41, -34.5, -39, -44];
     heights.forEach((h, k) => {
       const geo = new THREE.EdgesGeometry(new THREE.BoxGeometry(2.1, h, 2.1));
       const mat = fadeMat(new THREE.LineBasicMaterial(), 0.75, ACID);
@@ -490,10 +506,12 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
   {
     const g = new THREE.Group();
     const mats: FadeMat[] = [];
+    /* stacks flank the docked camera (-1.2,-8,-108): left, right, and
+       one far ahead-left so the forward vista stays open */
     const stacks = [
-      new THREE.Vector3(-9, -11, -114),
-      new THREE.Vector3(0, -11, -104),
-      new THREE.Vector3(8.5, -11, -112),
+      new THREE.Vector3(-8, -11, -113),
+      new THREE.Vector3(7.5, -11, -111),
+      new THREE.Vector3(-4, -11, -127),
     ];
     const boxEdges = new THREE.EdgesGeometry(new THREE.BoxGeometry(3.2, 2.1, 2.2));
     const contMat = fadeMat(new THREE.LineBasicMaterial(), 0.4, ACID_CYAN);
@@ -628,12 +646,14 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
     const mats: FadeMat[] = [];
     const RINGS = 6;
     const rings: THREE.Mesh<THREE.TorusGeometry, THREE.MeshBasicMaterial>[] = [];
-    const ringCenter = new THREE.Vector3(0, -4, -SEG * 5 - 8);
+    const ringCenter = new THREE.Vector3(0, -3.5, -SEG * 5 - 8);
     for (let k = 0; k < RINGS; k++) {
       const mat = fadeMat(new THREE.MeshBasicMaterial(), 0.55, WARM);
       const ring = new THREE.Mesh(new THREE.TorusGeometry(1, 0.035, 6, 48), mat);
       ring.position.copy(ringCenter);
-      ring.rotation.x = -Math.PI / 2;
+      /* mostly flat, tilted toward the camera: expanding rings read as
+         sonar waves sweeping past instead of an eye-level line */
+      ring.rotation.x = -Math.PI / 2 + 0.55;
       g.add(ring);
       rings.push(ring);
       mats.push(mat);
@@ -658,7 +678,7 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
   {
     const g = new THREE.Group();
     const mats: FadeMat[] = [];
-    const deck = new THREE.Vector3(0, -4.5, -SEG * 6 - 18);
+    const deck = new THREE.Vector3(0, -4.5, -SEG * 6 - 14); // closer: the docked camera is on short final
 
     const rimMat = fadeMat(new THREE.LineBasicMaterial(), 0.8, WARM);
     g.add(
@@ -737,6 +757,8 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
 
   let prevFov = BASE_FOV;
 
+  const drift = { x: 0, y: 0 };
+
   const tmpPos = new THREE.Vector3();
   const tmpLook = new THREE.Vector3();
   const tmpTan = new THREE.Vector3();
@@ -746,6 +768,7 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
 
   return {
     camera,
+    drift,
     pulse() {
       beat = 1;
     },
@@ -779,6 +802,18 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
       /* camera along the spline */
       posCurve.getPoint(p, tmpPos);
       lookCurve.getPoint(p, tmpLook);
+
+      /* the camera never parks: while docked, breathe (±0.3) and slowly
+         micro-orbit the look target (radius ~1.5, ~30s period) */
+      const dockAmt = 1 - THREE.MathUtils.smoothstep(transit, 0.02, 0.35);
+      const orbA = (t * Math.PI * 2) / 30;
+      const driftX = (Math.cos(orbA) * 1.5 + Math.sin(t * 0.43) * 0.3) * dockAmt;
+      const driftY = (Math.sin(orbA) * 1.1 + Math.cos(t * 0.31) * 0.3) * dockAmt;
+      tmpPos.x += driftX;
+      tmpPos.y += driftY;
+      drift.x = THREE.MathUtils.clamp(driftX / 1.8, -1, 1);
+      drift.y = THREE.MathUtils.clamp(driftY / 1.4, -1, 1);
+
       camera.position.copy(tmpPos);
       camera.lookAt(tmpLook);
       posCurve.getTangent(p, tmpTan);
@@ -825,7 +860,7 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
         gate.scale.setScalar(s);
       }
 
-      /* per-station sets: proximity fade + ticks */
+      /* per-station sets: proximity fade + docked boost + ticks */
       for (const s of stationSets) {
         const dist = Math.abs(f - s.i);
         const fade = 1 - THREE.MathUtils.smoothstep(dist, 0.55, 1.5);
@@ -834,8 +869,14 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
           continue;
         }
         s.group.visible = true;
-        for (const m of s.mats) m.opacity = (m.userData.base as number) * fade;
-        s.tick?.(fade, wdt, t, dist);
+        /* docked boost: while parked at a station its scenery burns
+           ~30-40% above the proximity baseline with a gentle pulse,
+           and relaxes back as the transit carries the camera away */
+        const near = 1 - THREE.MathUtils.smoothstep(dist, 0.04, 0.45);
+        const boost = 1 + near * dockAmt * (0.32 + 0.08 * Math.sin(t * 2.1));
+        const bf = Math.min(1.3, fade * boost);
+        for (const m of s.mats) m.opacity = Math.min(1, (m.userData.base as number) * bf);
+        s.tick?.(bf, wdt, t, dist);
       }
 
       /* warp streaks: dense & fast only during transits */

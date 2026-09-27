@@ -32,6 +32,11 @@ export async function initFlightdeck(): Promise<boolean> {
   if (stations.length < 2) return false;
   const N = stations.length;
 
+  /* the floating holo readout inside each station section */
+  const panelEls = stations.map((s) =>
+    s.el.querySelector<HTMLElement>(':scope > div:not([aria-hidden="true"])'),
+  );
+
   /* ---- world (lazy three.js chunk) ---- */
   let world: import('./flightworld').FlightWorld;
   try {
@@ -85,12 +90,28 @@ export async function initFlightdeck(): Promise<boolean> {
   /* ---- station activation ---- */
   let active = -1;
   let panelTimer = 0;
+  let outTimer = 0;
+  let outEl: HTMLElement | null = null;
   let pendingFocus: number | null = null;
 
   const activate = (i: number) => {
+    const prev = active;
     active = i;
     stations.forEach((s, k) => s.el.classList.toggle('station-active', k === i));
     flyButtons.forEach((b, k) => b.classList.toggle('is-active', k === i));
+
+    /* outgoing panel recedes into depth instead of vanishing outright */
+    if (prev >= 0 && prev !== i) {
+      const prevEl = stations[prev].el;
+      window.clearTimeout(outTimer);
+      outEl?.classList.remove('panel-out');
+      prevEl.classList.add('panel-out');
+      outEl = prevEl;
+      outTimer = window.setTimeout(() => {
+        prevEl.classList.remove('panel-out');
+        if (outEl === prevEl) outEl = null;
+      }, 420);
+    }
 
     const panel = stations[i].el;
     panel.classList.remove('panel-in');
@@ -149,6 +170,13 @@ export async function initFlightdeck(): Promise<boolean> {
   let vel = 0;
   const hudCache = { scroll: '', vel: '', pos: '' };
 
+  /* panel float state: pointer position (lerped) drives the tilt */
+  const ptr = { x: 0, y: 0, tx: 0, ty: 0 };
+  window.addEventListener('pointermove', (e) => {
+    ptr.tx = (e.clientX / window.innerWidth) * 2 - 1;
+    ptr.ty = (e.clientY / window.innerHeight) * 2 - 1;
+  });
+
   const frame = (now: number) => {
     requestAnimationFrame(frame);
     if (document.hidden) {
@@ -174,6 +202,23 @@ export async function initFlightdeck(): Promise<boolean> {
     vel += (inst - vel) * 0.12;
 
     world.update(p, transit, dt, now);
+
+    /* panel float: gentle bob + pointer tilt + counter-parallax against
+       the camera drift — the readout behaves like an object in space.
+       transform only, written once per frame for the active panel. */
+    const panel = active >= 0 ? panelEls[active] : null;
+    if (panel) {
+      ptr.x += (ptr.tx - ptr.x) * 0.06;
+      ptr.y += (ptr.ty - ptr.y) * 0.06;
+      const t = now * 0.001;
+      const bobY = Math.sin((t * Math.PI * 2) / 6) * 4;
+      const bobX = Math.sin((t * Math.PI * 2) / 9 + 1.3) * 2;
+      const tiltX = -ptr.y * 2.4 + world.drift.y * 1.4;
+      const tiltY = ptr.x * 2.6 - world.drift.x * 1.4;
+      const parX = -world.drift.x * 12 + bobX;
+      const parY = -world.drift.y * 9 + bobY;
+      panel.style.transform = `rotateX(${tiltX.toFixed(2)}deg) rotateY(${tiltY.toFixed(2)}deg) translate3d(${parX.toFixed(1)}px, ${parY.toFixed(1)}px, 0)`;
+    }
 
     /* beat decay for the HUD equalizer */
     beatLevel = Math.max(0, beatLevel - dt * 3.4);
