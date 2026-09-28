@@ -10,11 +10,16 @@
 /*   3. throughput — completed orders > 0                              */
 /* then a 60 s hold test: one AGV is held, a queue must form behind    */
 /* it, and after release the queue must dissolve again.                */
+/* T-104 adds the pack sim: phase C drives the Leitstand queueing      */
+/* model (manual vs pipeline — throughput >= 2.5×, queue drains),      */
+/* phase D drives the Prüfstraße at 35 % (consistent counters, bounded */
+/* siding via the Klärfall reset).                                     */
 /*                                                                     */
 /*   node scripts/check-halle-sim.mjs                                  */
 /* ------------------------------------------------------------------ */
 
 import { createSim } from '../src/scripts/halle/sim/world.ts';
+import { createPackSim } from '../src/scripts/halle/sim/packages.ts';
 
 const STEP = 0.1;
 const MIN_DIST = 1.6; // design floor: stop lines/fork merges keep >= ~2.0
@@ -127,6 +132,70 @@ const ok = (msg) => console.log('  ok', msg);
     else fail(`congestion did not dissolve: AGVs stuck: ${stuck.map((a) => a.id).join(',')}`);
     console.log(`  completed orders total: ${sim.stats.completed}`);
   }
+}
+
+/* ---------- phase C: Leitstand model — manual vs pipeline (T-104) --- */
+{
+  const pack = createPackSim(4711);
+  pack.setRates(10, 25); // ROI defaults: 10 quotes/day, 25 min per quote
+
+  /* manual: arrivals (0.5/s) outpace service (0.36/s) — queue builds.
+     Throughput is measured in a saturated window (after warm-up). */
+  pack.setMode('manual');
+  for (let t = 0; t < 600; t++) pack.advance(0.1); // 60 s warm-up
+  const qWarm = pack.queueLen;
+  const m0 = pack.servedTotal;
+  for (let t = 0; t < 1200; t++) pack.advance(0.1); // 120 s measured
+  const servedMan = pack.servedTotal - m0;
+  const qAtSwitch = pack.queueLen;
+
+  /* pipeline: 3× service rate. Measure while the backlog still
+     saturates the service (30 s), then run on — the queue must drain. */
+  pack.setMode('pipeline');
+  const p0 = pack.servedTotal;
+  for (let t = 0; t < 300; t++) pack.advance(0.1); // 30 s, still saturated
+  const servedPipe = pack.servedTotal - p0;
+  for (let t = 0; t < 1200; t++) pack.advance(0.1); // 120 s more
+  const qPipeEnd = pack.queueLen;
+
+  const rateMan = servedMan / 120;
+  const ratePipe = servedPipe / 30;
+  const ratio = ratePipe / rateMan;
+  console.log('phase C: Leitstand model (quotes=10/day, t=25 min)');
+  console.log(`  manual:   queue ${qWarm.toFixed(1)} → ${qAtSwitch.toFixed(1)} · rate ${rateMan.toFixed(3)}/s`);
+  console.log(`  pipeline: rate ${ratePipe.toFixed(3)}/s (${ratio.toFixed(2)}×) · queue after drain ${qPipeEnd.toFixed(2)}`);
+  if (qAtSwitch > 3) ok(`manual queue builds (${qAtSwitch.toFixed(1)} > 3)`);
+  else fail(`manual queue did not build (${qAtSwitch.toFixed(1)})`);
+  if (ratio >= 2.5) ok(`pipeline throughput ${ratio.toFixed(2)}× >= 2.5× manual`);
+  else fail(`pipeline throughput only ${ratio.toFixed(2)}× (< 2.5×)`);
+  if (qPipeEnd < 1) ok(`pipeline drains the queue (${qPipeEnd.toFixed(2)} < 1)`);
+  else fail(`pipeline did not drain the queue (${qPipeEnd.toFixed(2)})`);
+}
+
+/* ---------- phase D: Prüfstraße at 35 % (T-104) --------------------- */
+{
+  const pack = createPackSim(4711);
+  const q1 = pack.cycleErrQuota(); // 18 % → 35 %
+  const q2 = pack.cycleErrQuota(); // 35 % → 5 %
+  const q3 = pack.cycleErrQuota(); // 5 % → 18 %
+  if (q1 === 0.35 && q2 === 0.05 && q3 === 0.18) ok('quota cycles 5 → 18 → 35 → 5 %');
+  else fail(`quota cycle broken: ${q1}/${q2}/${q3}`);
+
+  pack.cycleErrQuota(); // back to 35 % for the measured run
+  for (let t = 0; t < 3000; t++) pack.advance(0.1); // 300 s
+  const { checked, diverted, sidingCount } = pack;
+  const ratio = diverted / Math.max(checked, 1);
+  console.log('phase D: Prüfstraße @ 35 % (300 s)');
+  console.log(`  checked ${checked} · diverted ${diverted} (${(ratio * 100).toFixed(1)} %) · siding ${sidingCount}`);
+  if (checked > 0 && diverted > 0 && diverted <= checked) {
+    ok('counters consistent (0 < diverted <= checked)');
+  } else {
+    fail(`counters inconsistent: checked=${checked} diverted=${diverted}`);
+  }
+  if (ratio > 0.25 && ratio < 0.45) ok(`diversion ratio ${(ratio * 100).toFixed(1)} % near 35 %`);
+  else fail(`diversion ratio off: ${(ratio * 100).toFixed(1)} % (expected ~35 %)`);
+  if (sidingCount <= 6) ok(`siding bounded at ${sidingCount} <= 6 (Klärfall reset works)`);
+  else fail(`siding overflow: ${sidingCount} > 6`);
 }
 
 if (failures === 0) {
