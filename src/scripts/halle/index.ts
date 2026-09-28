@@ -25,6 +25,7 @@ import { buildZones, type StackData } from './geometry/zones';
 import { createPackSim } from './sim/packages';
 import { createPackRender } from './sim/packrender';
 import { createInteract } from './interact';
+import { createAtmosphere } from './atmosphere';
 import { COL } from './layout';
 
 export type { FlightWorld } from './types';
@@ -111,19 +112,20 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
     power.attachSkip();
     let powerStart = -1;
 
-    type LightEntry = { light: THREE.Light; base: number; group: number };
+    /* T-105: `mult` ties a light to the active shift preset (hall
+       spots dim in daylight, the yard glows golden on the late shift).
+       Hemi + sun are owned by atmosphere.ts (it gets the group-2 level). */
+    type LightEntry = { light: THREE.Light; base: number; group: number; mult?: 'hall' | 'yard' | 'lounge' };
     const lightEntries: LightEntry[] = [];
-    const addLight = (light: THREE.Light, group: number) =>
-      lightEntries.push({ light, base: light.intensity, group });
-    addLight(dp.doorGlow, 0);
-    addLight(dp.yardGlow, 0);
+    const addLight = (light: THREE.Light, group: number, mult?: LightEntry['mult']) =>
+      lightEntries.push({ light, base: light.intensity, group, mult });
+    addLight(dp.doorGlow, 0, 'yard');
+    addLight(dp.yardGlow, 0, 'yard');
     addLight(pulse.beaconLight, 0);
-    dp.aisleSpots.forEach((l) => addLight(l, 1));
-    dp.coolSpots.forEach((l) => addLight(l, 2));
-    addLight(hemi, 2);
-    addLight(moon, 2);
+    dp.aisleSpots.forEach((l) => addLight(l, 1, 'hall'));
+    dp.coolSpots.forEach((l) => addLight(l, 2, 'hall'));
     addLight(dp.leitstandLight, 3);
-    addLight(dp.loungeLight, 4);
+    addLight(dp.loungeLight, 4, 'lounge');
 
     /* materials whose color/intensity rides a power group */
     type MatEntry = { mat: THREE.MeshBasicMaterial; base: THREE.Color; group: number };
@@ -140,6 +142,25 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
     for (const pm of zones.powerMats) addMat(pm.mat, pm.group);
     /* T-103 zone accent lights (gym corner, STACK mezzanine) */
     for (const zl of zones.lights) addLight(zl.light, zl.group);
+    /* T-105: pick-station task lights are a MANUAL workplace — the night
+       shift switches them off while the machines keep running */
+    const pickBase = zones.pickLight.color.clone();
+    const loungeBase = zones.loungeMats.map((m) => m.color.clone());
+
+    /* T-105: shifts (light + operation) and layers (roof, data flows,
+       automation, hazmat) — owns its HUD controls */
+    const atmo = createAtmosphere({
+      renderer,
+      scene,
+      hemi,
+      moon,
+      skyMat: shell.skyMat,
+      roof: shell.roof,
+      doorGlow: dp.doorGlow,
+      yardGlow: dp.yardGlow,
+      sim,
+      packSim,
+    });
     const CONE_OPACITY = 0.16;
     const POOL_OPACITY = 0.5;
 
@@ -378,6 +399,14 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
           avgT: +packSim.avgT.toFixed(2),
         };
       },
+      /* T-105: shift + layer control (shot/test scripts) */
+      shift(s: string): void {
+        if (s === 'morning' || s === 'late' || s === 'night') atmo.setShift(s);
+      },
+      layer(l: string, on: boolean): void {
+        if (l === 'roof' || l === 'data' || l === 'auto' || l === 'hazmat') atmo.setLayer(l, on);
+      },
+      atmo: () => ({ shift: atmo.shift, layers: atmo.layers }),
       /* T-104: Prüfstraße error quota + counters (shot/test scripts) */
       errq(): number {
         return interact.cycleErrQuota();
@@ -432,14 +461,27 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
         tour.apply(camera, p, transit, dt, now);
 
         /* lights ride their power group */
-        for (const e of lightEntries) e.light.intensity = e.base * L[e.group];
-        scene.environmentIntensity = 0.26 * (0.12 + 0.88 * L[2]);
+        /* beat decays first: the lounge rides it below */
+        beat = Math.max(0, beat - dt * 3.2);
+
+        for (const e of lightEntries) {
+          let k = L[e.group];
+          if (e.mult === 'hall') k *= atmo.hallSpot;
+          else if (e.mult === 'yard') k *= atmo.yardLight;
+          else if (e.mult === 'lounge') k *= 1 + beat * 0.6;
+          e.light.intensity = e.base * k;
+        }
+        scene.environmentIntensity = 0.26 * (0.12 + 0.88 * L[2]) * atmo.envInt;
         for (const e of matEntries) e.mat.color.copy(e.base).multiplyScalar(minLevel(L[e.group]));
-        dp.coneMat.opacity = CONE_OPACITY * L[2];
-        dp.poolMat.opacity = POOL_OPACITY * L[2];
+        zones.pickLight.color.copy(pickBase).multiplyScalar(minLevel(L[2]) * atmo.manual);
+        zones.loungeMats.forEach((m, i) =>
+          m.color.copy(loungeBase[i]).multiplyScalar(minLevel(L[4]) * (1 + beat * 1.3)),
+        );
+        dp.coneMat.opacity = CONE_OPACITY * L[2] * atmo.cone;
+        dp.poolMat.opacity = POOL_OPACITY * L[2] * atmo.pool;
+        atmo.update(dt, L[2]);
 
         /* beat pulse: work-light strips + holo labels ride the kick */
-        beat = Math.max(0, beat - dt * 3.2);
         const b = 1 + beat * 0.9;
         pulse.acid.color.copy(ACID).multiplyScalar(b * minLevel(L[1]));
         pulse.cyan.color.copy(CYAN).multiplyScalar((1 + beat * 0.7) * minLevel(L[3]));

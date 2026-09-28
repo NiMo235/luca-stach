@@ -198,6 +198,55 @@ const ok = (msg) => console.log('  ok', msg);
   else fail(`siding overflow: ${sidingCount} > 6`);
 }
 
+/* ---------- phase E: shift profiles (T-105) --------------------------
+   Nacht 0.25 · Spät 0.6 · Früh 1.0 scale the order generator. The fleet
+   saturates above ~0.4 (MAX_TRANSIT), so Spät and Früh may tie; Nacht
+   must be visibly calmer but still alive, and no profile may deadlock. */
+{
+  const res = {};
+  for (const [name, rate] of [
+    ['night', 0.25],
+    ['late', 0.6],
+    ['morning', 1.0],
+  ]) {
+    const sim = createSim(1337);
+    sim.orders.setRate(rate);
+    const lastMove = sim.agvs.map(() => 0);
+    let mv = 0;
+    let n = 0;
+    let dead = 0;
+    for (let tick = 0; tick < 6000; tick++) {
+      sim.step();
+      for (const a of sim.agvs) {
+        if (a.state !== 'parked' && a.v > 0.05) mv++;
+        n++;
+        /* parked time is not stall time: the clock starts when the AGV
+           leaves its slot (calm shifts park more AGVs for longer) */
+        if (a.state === 'parked' || Math.hypot(a.x - a.px, a.z - a.pz) > 0.005) lastMove[a.id] = tick;
+        if (a.state !== 'parked' && !a.hold && a.v < 0.02 && tick - lastMove[a.id] > MOVE_WINDOW) {
+          dead++;
+          lastMove[a.id] = tick;
+        }
+      }
+    }
+    res[name] = { completed: sim.stats.completed, moving: mv / n, dead };
+  }
+  console.log('phase E: shift profiles (10 min each)');
+  for (const [k, v] of Object.entries(res)) {
+    console.log(`  ${k}: ${v.completed} orders · ${(v.moving * 100).toFixed(1)} % moving · ${v.dead} stalls`);
+  }
+  const { night, late, morning } = res;
+  if (night.completed < late.completed && late.completed <= morning.completed + 2) {
+    ok('throughput Nacht < Spät <= Früh');
+  } else {
+    fail(`shift throughput not ordered: ${night.completed} / ${late.completed} / ${morning.completed}`);
+  }
+  if (night.moving >= 0.45) ok(`night shift still alive (${(night.moving * 100).toFixed(1)} % moving)`);
+  else fail(`night shift too static: ${(night.moving * 100).toFixed(1)} %`);
+  if (night.dead + late.dead + morning.dead === 0) ok('no stalls in any shift');
+  else fail(`stalls: night ${night.dead} · late ${late.dead} · morning ${morning.dead}`);
+}
+
 if (failures === 0) {
   console.log('HALLE sim test: PASS');
   process.exit(0);

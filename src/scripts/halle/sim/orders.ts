@@ -48,6 +48,8 @@ export interface OrderSystem {
   complete(o: Order): void;
   count: number; // completed orders
   step(now: number): void;
+  /** T-105: shift profile — scales the generation interval (1 = Früh) */
+  setRate(mult: number): void;
 }
 
 export function createOrders(seed: number, palletFree: () => number): OrderSystem {
@@ -59,6 +61,7 @@ export function createOrders(seed: number, palletFree: () => number): OrderSyste
   const queue: Order[] = [];
   let nextId = 1;
   let nextGen = 2.0; // first orders appear quickly after power-up
+  let rateMult = 1; // T-105 shift profile (Früh 1 · Spät 0.6 · Nacht 0.25)
 
   const freeAisleSlot = (): number => {
     const opts: number[] = [];
@@ -126,9 +129,12 @@ export function createOrders(seed: number, palletFree: () => number): OrderSyste
     },
     step(now: number) {
       if (now >= nextGen) {
-        nextGen = now + 0.8 + rnd() * 0.7;
+        nextGen = now + (0.8 + rnd() * 0.7) / rateMult;
         generate(now);
       }
+    },
+    setRate(mult: number) {
+      rateMult = Math.max(0.05, Math.min(4, mult));
     },
   };
 }

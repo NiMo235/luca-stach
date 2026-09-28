@@ -135,6 +135,11 @@ export interface PackSim {
   readonly avgT: number;
   setMode(m: LeitstandMode): void;
   setRates(quotesPerDay: number, minutes: number): void;
+  /** T-105 shift profile: scales the quote arrival rate (ROI stays owner
+      of the base rate — the shift multiplies on top) */
+  setDemand(mult: number): void;
+  /** T-105 shift profile: scales the conveyor belt speed */
+  setPace(p: number): void;
   advance(dt: number): void;
 }
 
@@ -191,6 +196,9 @@ export function createPackSim(seed = 4711): PackSim {
   let minutes = 25;
   let queueLen = 0;
   let servedTotal = 0;
+  /* T-105 shift profile */
+  let demand = 1;
+  let pace = 1;
   const tmp = { x: 0, z: 0, ry: 0 };
   const stackTmp = { x: 0, z: 0 };
 
@@ -239,8 +247,15 @@ export function createPackSim(seed = 4711): PackSim {
       if (q > 0) quotesPerDay = q;
       if (m > 0) minutes = m;
     },
+    setDemand(m) {
+      demand = Math.max(0.05, Math.min(4, m));
+    },
+    setPace(p) {
+      pace = Math.max(0.2, Math.min(1.6, p));
+    },
     advance(dt) {
-      baseS = (baseS + BELT_SPEED * dt) % LOOP_LEN;
+      const beltV = BELT_SPEED * pace;
+      baseS = (baseS + beltV * dt) % LOOP_LEN;
       for (let i = 0; i < CONV_COUNT; i++) {
         const slot = slots[i];
         const p = conv[i];
@@ -249,7 +264,7 @@ export function createPackSim(seed = 4711): PackSim {
           /* diverted: slide down the stub, then park on the stack slot —
              it stays until the Klärfall reset collects the whole stack */
           if (slot.bs < BRANCH_LEN) {
-            slot.bs = Math.min(BRANCH_LEN, slot.bs + BELT_SPEED * dt);
+            slot.bs = Math.min(BRANCH_LEN, slot.bs + beltV * dt);
           }
           if (slot.bs >= BRANCH_LEN && slot.stackIdx >= 0) {
             stackPos(slot.stackIdx, stackTmp);
@@ -309,8 +324,9 @@ export function createPackSim(seed = 4711): PackSim {
         if (q.x < QLANE.x0) q.x = QLANE.x1;
       }
 
-      /* queueing model: arrivals in, service out; pipeline serves 3× */
-      queueLen += quotesPerDay * ARR_K * dt;
+      /* queueing model: arrivals in, service out; pipeline serves 3×.
+         The shift profile scales arrivals (T-105). */
+      queueLen += quotesPerDay * ARR_K * demand * dt;
       const srvRate = (SRV_K / minutes) * (mode === 'pipeline' ? PIPE_FACTOR : 1);
       const served = Math.min(queueLen, srvRate * dt);
       queueLen -= served;

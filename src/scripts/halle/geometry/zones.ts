@@ -24,6 +24,11 @@ export interface ZoneHandles {
   powerMats: Array<{ mat: THREE.MeshBasicMaterial; group: number }>;
   /** scanner light curtain — index.ts oscillates the opacity */
   scanMat: THREE.MeshBasicMaterial;
+  /** pick-station task lights: a MANUAL workplace — dark on the night
+      shift (T-105), riding power group 2 (added by index.ts) */
+  pickLight: THREE.MeshBasicMaterial;
+  /** DJ deck glow rings — pulse with the audio beat (T-105) */
+  loungeMats: THREE.MeshBasicMaterial[];
   /** extra zone accent lights riding a power group (no shadows) */
   lights: Array<{ light: THREE.Light; group: number }>;
   /** TOR 1 traffic-light lenses — the DOCK interaction flips them (T-104) */
@@ -80,6 +85,7 @@ function buildProof(scene: THREE.Scene, powerMats: ZoneHandles['powerMats']): vo
    north straight and three pick stations on the south side. */
 function buildWork(scene: THREE.Scene, powerMats: ZoneHandles['powerMats']): {
   scanMat: THREE.MeshBasicMaterial;
+  pickLight: THREE.MeshBasicMaterial;
 } {
   const frame = new GeoBatch();
   const midX = (CONV.x0 + CONV.x1) / 2;
@@ -201,9 +207,9 @@ function buildWork(scene: THREE.Scene, powerMats: ZoneHandles['powerMats']): {
   const strips = new GeoBatch();
   for (const px of [-10, -2, 4]) strips.box(1.55, 0.04, 0.04, px, 1.92, CONV.zS + 1.65);
   scene.add(strips.mesh(pickLight, false, false));
-  powerMats.push({ mat: pickLight, group: 2 });
-
-  return { scanMat };
+  /* T-105: NOT in powerMats anymore — index.ts adds it tagged "manual"
+     (night shift turns human workplaces off) */
+  return { scanMat, pickLight };
 }
 
 /* ========================== GEFAHRGUT =============================== */
@@ -482,6 +488,7 @@ function buildLounge(
   scene: THREE.Scene,
   powerMats: ZoneHandles['powerMats'],
   lights: ZoneHandles['lights'],
+  loungeMats: ZoneHandles['loungeMats'],
 ): void {
   const dark = new THREE.MeshStandardMaterial({ color: 0x24282d, metalness: 0.6, roughness: 0.5 });
   const gymMetal = new THREE.MeshStandardMaterial({ color: 0x99a1aa, metalness: 0.8, roughness: 0.35 });
@@ -515,6 +522,7 @@ function buildLounge(
   for (let k = 0; k < 4; k++) mixer.box(0.03, 0.02, 0.3, -40.64 + k * 0.1, 1.09, 27.8);
   scene.add(mixer.mesh(darkSteel, false, false));
   powerMats.push({ mat: deckGlowAmber, group: 4 }, { mat: deckGlowCyan, group: 4 });
+  loungeMats.push(deckGlowAmber, deckGlowCyan); // T-105: beat-pulsed rings
 
   /* podcast table deep in the room (out of the camera's near field),
      two stools + jointed mic arms: base, two segments with a visible
@@ -682,11 +690,12 @@ function buildGallery(scene: THREE.Scene, powerMats: ZoneHandles['powerMats']): 
 export function buildZones(scene: THREE.Scene, stackData: StackData | null): ZoneHandles {
   const powerMats: ZoneHandles['powerMats'] = [];
   const lights: ZoneHandles['lights'] = [];
+  const loungeMats: ZoneHandles['loungeMats'] = [];
   buildProof(scene, powerMats);
-  const { scanMat } = buildWork(scene, powerMats);
+  const { scanMat, pickLight } = buildWork(scene, powerMats);
   buildCage(scene, powerMats);
   buildStack(scene, stackData, powerMats);
-  buildLounge(scene, powerMats, lights);
+  buildLounge(scene, powerMats, lights, loungeMats);
   const { signal0 } = buildDock(scene);
   buildGallery(scene, powerMats);
 
@@ -696,5 +705,5 @@ export function buildZones(scene: THREE.Scene, stackData: StackData | null): Zon
   scene.add(mezzLight);
   lights.push({ light: mezzLight, group: 2 });
 
-  return { powerMats, scanMat, lights, dockSignal: signal0 };
+  return { powerMats, scanMat, pickLight, loungeMats, lights, dockSignal: signal0 };
 }

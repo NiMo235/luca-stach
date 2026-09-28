@@ -219,7 +219,18 @@
     "mapFly": "Flug zu {station}",
     "fdManual": "MANUELL",
     "fdPipeline": "PIPELINE",
-    "fdQueue": "QUEUE"
+    "fdQueue": "QUEUE",
+    "shiftLabel": "Schicht",
+    "shiftMorning": "Früh",
+    "shiftLate": "Spät",
+    "shiftNight": "Nacht",
+    "layersTitle": "Ebenen",
+    "layersLabel": "Ebenen der Halle ein- und ausblenden",
+    "layersToggle": "Ebenen-Menü öffnen oder schließen",
+    "layerRoof": "Dach",
+    "layerData": "Datenströme",
+    "layerAuto": "Automatisierung",
+    "layerHazmat": "Gefahrgut"
   },
   "log": {
     "kicker": "// build log",

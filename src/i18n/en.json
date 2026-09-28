@@ -219,7 +219,18 @@
     "mapFly": "Fly to {station}",
     "fdManual": "MANUAL",
     "fdPipeline": "PIPELINE",
-    "fdQueue": "QUEUE"
+    "fdQueue": "QUEUE",
+    "shiftLabel": "Shift",
+    "shiftMorning": "Early",
+    "shiftLate": "Late",
+    "shiftNight": "Night",
+    "layersTitle": "Layers",
+    "layersLabel": "Show or hide layers of the hall",
+    "layersToggle": "Open or close the layer menu",
+    "layerRoof": "Roof",
+    "layerData": "Data flows",
+    "layerAuto": "Automation",
+    "layerHazmat": "Hazmat"
   },
   "log": {
     "kicker": "// build log",
