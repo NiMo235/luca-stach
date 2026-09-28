@@ -210,8 +210,11 @@ if (statPipe && statMan && statPipe.avgT < statMan.avgT) {
 
 /* ================= WORK: 35 % error quota =========================== */
 await scrollToStation(3);
+/* T-105: the default night shift runs the belt at 55 % pace — measure
+   on the early shift (full pace) so the window sees enough parcels */
+await evaluate(`window.__halleDebug.shift && window.__halleDebug.shift('morning')`);
 const quota = await evaluate(`window.__halleDebug.errq()`); // 18 % → 35 %
-await sleep(7000); // red parcels reach the diverter, siding stacks
+await sleep(10000); // red parcels reach the diverter, siding stacks
 const errqStats = await evaluate(`window.__halleDebug.errqStats()`);
 await shot('work-35');
 console.log('WORK quota:', quota, '· stats:', JSON.stringify(errqStats));

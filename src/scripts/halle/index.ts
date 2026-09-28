@@ -4,7 +4,7 @@
 /* edge reservation on a one-way network, shuttles, 2 RBGs, trucks at  */
 /* the doors, pallet flow, a power-up intro after the cold boot and    */
 /* tap-to-hold AGV interaction (visible congestion, 8 s timeout).      */
-/* Implements the FlightWorld contract from ../flightworld (types.ts). */
+/* Implements the FlightWorld contract (types.ts).                     */
 /* ------------------------------------------------------------------ */
 
 import * as THREE from 'three';
@@ -431,6 +431,38 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
     const tmpV = new THREE.Vector3();
     let beat = 0;
 
+    /* T-106 adaptive quality: after the power-up, measure the real frame
+       time for 3 s. Too slow → step the pixel ratio down (Q1 1.25, Q2 1.0);
+       at Q2 the additive light cones go too. At most two steps, then the
+       measurement stops — no oscillation. */
+    const Q_DPR = [stage.dpr, Math.min(stage.dpr, 1.25), 1.0];
+    let qLevel = 0;
+    let qT = 0;
+    let qFrames = 0;
+    let qSettle = 1.0; // ignore the first second after a change
+    const qualityTick = (dt: number) => {
+      if (qLevel >= 2 || !power.done || document.hidden) return;
+      if (qSettle > 0) {
+        qSettle -= dt;
+        return;
+      }
+      qT += dt;
+      qFrames++;
+      if (qT < 3) return;
+      const fps = qFrames / qT;
+      qT = 0;
+      qFrames = 0;
+      if (fps >= 45) {
+        qLevel = 2; // fast enough — stop measuring
+        return;
+      }
+      qLevel++;
+      stage.setDpr(Q_DPR[qLevel]);
+      if (qLevel === 2) dp.coneMat.visible = false;
+      qSettle = 1.0;
+      if (qLevel === 1 && fps >= 30) qLevel = 2; // one step was enough
+    };
+
     return {
       camera,
       drift: tour.drift,
@@ -578,6 +610,7 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
 
         renderer.render(scene, camera);
         stats.frame(dt);
+        qualityTick(dt);
       },
     };
   } catch (err) {

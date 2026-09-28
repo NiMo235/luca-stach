@@ -1,7 +1,7 @@
 /* ------------------------------------------------------------------ */
 /* Shared contract between the scroll rig (flightdeck.ts) and the      */
-/* world implementation. The hall (halle/) implements this; the old    */
-/* corridor (flightworld.ts) kept the same shape until T-106.          */
+/* world implementation (the hall, halle/). The old corridor world     */
+/* (flightworld.ts) was removed in T-106.                              */
 /* ------------------------------------------------------------------ */
 
 import type * as THREE from 'three';
