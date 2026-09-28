@@ -173,7 +173,8 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
       ndc.set((cx / window.innerWidth) * 2 - 1, -(cy / window.innerHeight) * 2 + 1);
       raycaster.setFromCamera(ndc, camera);
       const hits = raycaster.intersectObjects(interact.hitTargets, false);
-      return hits.length > 0 ? hits[0].object : null;
+      for (const h of hits) if (h.object.visible) return h.object;
+      return null;
     };
     /* hotspot raycast — AGVs always win over hotspots (checked first) */
     const raycastHotspot = (cx: number, cy: number): number => {
@@ -444,14 +445,17 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
         pulse.cyan.color.copy(CYAN).multiplyScalar((1 + beat * 0.7) * minLevel(L[3]));
         pulse.amber.color.copy(AMBER).multiplyScalar((0.78 + beat * 0.42) * minLevel(L[4]));
 
-        /* holo labels: cap the on-screen size (scale by distance) and
-           hide them in the near field, so fly-bys never fill the frame */
+        /* holo labels: T-105 tightened — the apparent size now SHRINKS
+           with distance (was: constant screen size at any range, which
+           blew foreign labels up across the frame), and the near-field
+           fade starts at 9 m so labels closer than ~12 m stay small or
+           hidden. Applies to every zone label, generic. */
         pulse.labelSprites.forEach((s, i) => {
           s.position.y += Math.sin(t * 0.7 + i * 1.7) * dt * 0.06;
           const dist = tmpV.copy(s.position).distanceTo(camera.position);
-          const sScale = THREE.MathUtils.clamp(dist / 22, 0.35, 1);
+          const sScale = THREE.MathUtils.clamp(dist / 40, 0.18, 0.55);
           s.scale.set(7.6 * sScale, 1.9 * sScale, 1);
-          const near = THREE.MathUtils.smoothstep(dist, 8, 14);
+          const near = THREE.MathUtils.smoothstep(dist, 3.5, 9);
           pulse.labels[i].opacity = (0.78 + beat * 0.22) * near * L[3];
         });
 
