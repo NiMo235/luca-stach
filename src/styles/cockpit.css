@@ -560,8 +560,11 @@
 }
 
 /* ---- minimap / floor plan (T-103) ------------------------------------
-   bottom-right, above the audio cluster. The BEYOND panel (right-low)
-   is raised far enough that the open map never covers a panel. */
+   bottom-right, above the audio cluster. COLLAPSED by default on every
+   viewport (it is only the small GRUNDISS toggle then); when the user
+   opens it, it gets a solid background and may overlap a panel edge —
+   that is the user's choice. Panels keep their exact main-branch
+   geometry: no padding/height changes here. */
 #halle-map {
   display: none;
 }
@@ -600,20 +603,42 @@
   color: var(--color-acid);
 }
 #halle-map .halle-map-chevron {
-  width: 7px;
-  height: 7px;
-  border-right: 1px solid currentColor;
-  border-bottom: 1px solid currentColor;
-  transform: rotate(45deg);
-  transition: transform 0.2s ease;
+  position: relative;
+  width: 9px;
+  height: 9px;
+  flex: none;
 }
+/* collapsed: ▸ (expand affordance) */
 #halle-map[data-collapsed='true'] .halle-map-chevron {
-  transform: rotate(-135deg);
+  width: 0;
+  height: 0;
+  border-left: 6px solid currentColor;
+  border-top: 4.5px solid transparent;
+  border-bottom: 4.5px solid transparent;
+}
+/* open: × (close affordance) */
+#halle-map[data-collapsed='false'] .halle-map-chevron::before,
+#halle-map[data-collapsed='false'] .halle-map-chevron::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 0;
+  width: 1.5px;
+  height: 9px;
+  background: currentColor;
+}
+#halle-map[data-collapsed='false'] .halle-map-chevron::before {
+  transform: rotate(45deg);
+}
+#halle-map[data-collapsed='false'] .halle-map-chevron::after {
+  transform: rotate(-45deg);
 }
 #halle-map .halle-map-body {
   border: 1px solid color-mix(in srgb, var(--color-paper) 20%, transparent);
   border-top: 0;
-  background: color-mix(in srgb, var(--color-ink) 78%, transparent);
+  /* open state floats over the world (and possibly a panel edge):
+     nearly solid so the plan stays readable on any backdrop */
+  background: color-mix(in srgb, var(--color-ink) 93%, transparent);
 }
 #halle-map[data-collapsed='true'] .halle-map-body {
   display: none;
@@ -697,9 +722,4 @@
   stroke: var(--color-ink);
   stroke-width: 0.5;
   pointer-events: none;
-}
-/* right-side panels (PROOF/DOCK right-mid, WORK right-high, BEYOND
-   right-low) stay clear of the open minimap in the bottom-right corner */
-.flightdeck :is(#proof, #work, #beyond, #contact):is(.station-active, .panel-out) {
-  padding-bottom: 15rem;
 }

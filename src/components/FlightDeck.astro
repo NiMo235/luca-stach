@@ -134,11 +134,11 @@ const stationLabel = (i: number) => hud.stations[i]?.label ?? '';
 <!-- T-103: minimap / floor plan — bottom right, collapsible. Zone
      groups are clickable (halle:fly); AGV dots, trucks and the camera
      wedge are updated live from the hall (minimap.ts). -->
-<nav id="halle-map" class="halle-map" aria-label={hud.mapLabel} data-collapsed="false">
+<nav id="halle-map" class="halle-map" aria-label={hud.mapLabel} data-collapsed="true">
   <button
     type="button"
     class="halle-map-toggle"
-    aria-expanded="true"
+    aria-expanded="false"
     aria-controls="halle-map-body"
     aria-label={hud.mapToggle}
   >
