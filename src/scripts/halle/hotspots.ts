@@ -14,8 +14,16 @@ export interface Hotspots {
   hitTargets: THREE.Object3D[];
   /** resolve a raycast hit list to a station index (or -1) */
   stationFromHits(hits: THREE.Intersection[]): number;
-  /** per-frame: bobbing/rotation, dim current station, hover highlight */
-  update(t: number, activeStation: number, hoverStation: number, powerLevel: number): void;
+  /** per-frame: bobbing/rotation, dim current station, hover highlight.
+      The markers scale down in the near field (like the labels) so a
+      docked viewpoint never fills the frame with its own diamond */
+  update(
+    t: number,
+    activeStation: number,
+    hoverStation: number,
+    powerLevel: number,
+    camPos: THREE.Vector3,
+  ): void;
   /** station -> world position (debug/shot hooks) */
   pos(i: number): { x: number; y: number; z: number };
 }
@@ -64,12 +72,14 @@ export function createHotspots(scene: THREE.Scene, labelSprites: THREE.Sprite[])
       const h = HOTSPOTS[i];
       return { x: h.x, y: h.y + DIAMOND_Y_OFF, z: h.z };
     },
-    update(t, activeStation, hoverStation, powerLevel) {
+    update(t, activeStation, hoverStation, powerLevel, camPos) {
       for (let i = 0; i < HOTSPOTS.length; i++) {
         const h = HOTSPOTS[i];
         P.set(h.x, h.y + DIAMOND_Y_OFF + Math.sin(t * 0.9 + i * 1.3) * 0.18, h.z);
         Q.setFromAxisAngle(Y, t * 0.7 + i * 0.9);
-        const sc = i === hoverStation ? 1.45 : 1;
+        /* near-field scale-down (same reference distance as the labels) */
+        const dScale = THREE.MathUtils.clamp(P.distanceTo(camPos) / 22, 0.35, 1.1);
+        const sc = dScale * (i === hoverStation ? 1.45 : 1);
         S.set(sc, sc, sc);
         m4.compose(P, Q, S);
         mesh.setMatrixAt(i, m4);

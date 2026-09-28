@@ -31,12 +31,14 @@ export function createMinimap(sim: Sim): Minimap | null {
   const zoneEls = Array.from(root.querySelectorAll<SVGGElement>('.mm-zone'));
   if (!toggle || !agvLayer || !truckLayer || !camEl) return null;
 
-  /* ---- collapse state (persisted; default collapsed below 1360 px) -- */
+  /* ---- collapse state (persisted; default collapsed below 1360 px) --
+     a stored "open" is honored on wide screens only: below 1360 px the
+     map ALWAYS starts collapsed (it would otherwise crowd the panels) */
   let collapsed = window.innerWidth < 1360;
   try {
     const stored = window.localStorage.getItem(LS_KEY);
     if (stored === '1') collapsed = true;
-    if (stored === '0') collapsed = false;
+    if (stored === '0' && window.innerWidth >= 1360) collapsed = false;
   } catch {
     /* private mode etc. — keep the default */
   }

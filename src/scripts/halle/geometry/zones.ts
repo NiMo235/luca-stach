@@ -24,6 +24,8 @@ export interface ZoneHandles {
   powerMats: Array<{ mat: THREE.MeshBasicMaterial; group: number }>;
   /** scanner light curtain — index.ts oscillates the opacity */
   scanMat: THREE.MeshBasicMaterial;
+  /** extra zone accent lights riding a power group (no shadows) */
+  lights: Array<{ light: THREE.Light; group: number }>;
 }
 
 const ACID = new THREE.Color(COL.acid);
@@ -31,7 +33,8 @@ const CYAN = new THREE.Color(COL.cyan);
 
 const steel = new THREE.MeshStandardMaterial({ color: 0x39424a, metalness: 0.85, roughness: 0.42 });
 const darkSteel = new THREE.MeshStandardMaterial({ color: 0x22282e, metalness: 0.8, roughness: 0.5 });
-const beltSteel = new THREE.MeshStandardMaterial({ color: 0x2b3138, metalness: 0.75, roughness: 0.45 });
+const beltSteel = new THREE.MeshStandardMaterial({ color: 0x3d454e, metalness: 0.75, roughness: 0.45 });
+const rollerSteel = new THREE.MeshStandardMaterial({ color: 0x8b939e, metalness: 0.9, roughness: 0.3 });
 const foam = new THREE.MeshStandardMaterial({ color: 0x17191c, metalness: 0.1, roughness: 0.9 });
 
 /* ============================ PROOF ================================= */
@@ -107,7 +110,7 @@ function buildWork(scene: THREE.Scene, powerMats: ZoneHandles['powerMats']): {
       rollers.cyl(0.035, 0.035, CONV.beltW - 0.08, 8, x, CONV.beltY - 0.02, z, Math.PI / 2);
     }
   }
-  scene.add(rollers.mesh(new THREE.MeshStandardMaterial({ color: 0x6a727c, metalness: 0.9, roughness: 0.3 }), false, false));
+  scene.add(rollers.mesh(rollerSteel, false, false));
 
   /* acid edge strips along the outer rails */
   const edgeMat = new THREE.MeshBasicMaterial({ color: ACID.clone().multiplyScalar(0.5) });
@@ -116,6 +119,13 @@ function buildWork(scene: THREE.Scene, powerMats: ZoneHandles['powerMats']): {
   edges.box(sLen, 0.025, 0.025, midX, CONV.beltY + 0.1, CONV.zS + CONV.beltW / 2 + 0.02);
   scene.add(edges.mesh(edgeMat, false, false));
   powerMats.push({ mat: edgeMat, group: 2 });
+
+  /* cyan under-glow strips — the loop reads from across the dark hall */
+  const underMat = new THREE.MeshBasicMaterial({ color: CYAN.clone().multiplyScalar(0.4) });
+  const under = new GeoBatch();
+  for (const z of [CONV.zN, CONV.zS]) under.box(sLen, 0.03, 0.06, midX, CONV.beltY - 0.17, z);
+  scene.add(under.mesh(underMat, false, false));
+  powerMats.push({ mat: underMat, group: 2 });
 
   /* scanner portal on the north straight */
   const portal = new GeoBatch();
@@ -165,7 +175,7 @@ function buildWork(scene: THREE.Scene, powerMats: ZoneHandles['powerMats']): {
   for (let d = 0.3; d < stubLen - 0.2; d += 0.45) {
     stubRollers.cyl(0.035, 0.035, CONV.beltW - 0.08, 8, CONV.divX, CONV.beltY - 0.02, CONV.zN - CONV.beltW / 2 - d, 0, Math.PI / 2);
   }
-  scene.add(stubRollers.mesh(new THREE.MeshStandardMaterial({ color: 0x6a727c, metalness: 0.9, roughness: 0.3 }), false, false));
+  scene.add(stubRollers.mesh(rollerSteel, false, false));
 
   /* three pick stations along the south side */
   const pickLight = new THREE.MeshBasicMaterial({ color: ACID.clone().multiplyScalar(0.5) });
@@ -400,8 +410,9 @@ function buildStack(
         const fg = new THREE.BoxGeometry(BIN_D - 0.3, fh, BIN_W - 0.24);
         fg.translate(SHELF_X, baseY + 0.08 + fh / 2, bz);
         (bin.kind === 0 ? fillAcid : fillCyan).add(fg);
-        /* label plane above the bin front, facing the viewpoint (west) */
-        const lg = new THREE.PlaneGeometry(1.6, 0.34);
+        /* label plane above the bin front, facing the viewpoint (west).
+           4:1 aspect matches the 512×128 atlas cells */
+        const lg = new THREE.PlaneGeometry(1.6, 0.4);
         const uv = lg.getAttribute('uv') as THREE.BufferAttribute;
         const col = binMeta.length - 1 - Math.floor((binMeta.length - 1) / 4) * 4;
         const rowA = Math.floor((binMeta.length - 1) / 4);
@@ -409,7 +420,7 @@ function buildStack(
           uv.setXY(vi, (col + uv.getX(vi)) / 4, 1 - (rowA + (1 - uv.getY(vi))) / 4);
         }
         lg.rotateY(-Math.PI / 2);
-        lg.translate(SHELF_X - BIN_D / 2 - 0.06, baseY + BIN_H + 0.24, bz);
+        lg.translate(SHELF_X - BIN_D / 2 - 0.06, baseY + BIN_H + 0.26, bz);
         labelPlanes.push(lg);
       }
     }
@@ -422,44 +433,36 @@ function buildStack(
   scene.add(fillCyan.mesh(fillCyanMat, false, false));
   powerMats.push({ mat: fillAcidMat, group: 2 }, { mat: fillCyanMat, group: 2 });
 
-  /* label atlas: 4×4 cells, name + level pips */
-  const atlas = canvasTexture(1024, 1024, (ctx) => {
-    ctx.clearRect(0, 0, 1024, 1024);
+  /* label atlas: 4×4 cells of 512×128 (wide enough for one-line names) */
+  const atlas = canvasTexture(2048, 512, (ctx) => {
+    ctx.clearRect(0, 0, 2048, 512);
     binMeta.forEach((bin, i) => {
       const col = i % 4;
       const row = Math.floor(i / 4);
-      const x0 = col * 256;
-      const y0 = row * 256;
+      const x0 = col * 512;
+      const y0 = row * 128;
       const accent = bin.kind === 0 ? '#b4ff39' : '#7dffd8';
       ctx.fillStyle = 'rgba(6,10,8,0.72)';
-      ctx.fillRect(x0 + 6, 6, 244, 244);
+      ctx.fillRect(x0 + 4, y0 + 4, 504, 120);
       ctx.strokeStyle = accent;
       ctx.globalAlpha = 0.8;
       ctx.lineWidth = 3;
-      ctx.strokeRect(x0 + 6, 6, 244, 244);
+      ctx.strokeRect(x0 + 4, y0 + 4, 504, 120);
       ctx.globalAlpha = 1;
       ctx.fillStyle = '#e8ece4';
-      ctx.font = '600 25px "JetBrains Mono", monospace';
       ctx.textAlign = 'center';
-      /* wrap long names on two lines */
-      const name = bin.name;
-      if (ctx.measureText(name).width <= 226) {
-        ctx.fillText(name, x0 + 128, 108);
-      } else {
-        const mid = Math.ceil(name.length / 2);
-        let cut = name.lastIndexOf(' ', mid);
-        if (cut < 4) cut = name.indexOf(' ', mid);
-        if (cut > 0) {
-          ctx.fillText(name.slice(0, cut), x0 + 128, 88);
-          ctx.fillText(name.slice(cut + 1), x0 + 128, 122);
-        } else {
-          ctx.fillText(name, x0 + 128, 108);
-        }
+      /* shrink the font until the name fits on one line */
+      let fs = 42;
+      ctx.font = `600 ${fs}px "JetBrains Mono", monospace`;
+      while (fs > 24 && ctx.measureText(bin.name).width > 460) {
+        fs -= 3;
+        ctx.font = `600 ${fs}px "JetBrains Mono", monospace`;
       }
+      ctx.fillText(bin.name, x0 + 256, y0 + 58);
       /* level pips */
       for (let p = 0; p < 5; p++) {
         ctx.fillStyle = p < bin.level ? accent : 'rgba(232,236,228,0.18)';
-        ctx.fillRect(x0 + 68 + p * 26, 150, 18, 10);
+        ctx.fillRect(x0 + 256 - 70 + p * 32, y0 + 84, 24, 12);
       }
     });
   });
@@ -473,8 +476,13 @@ function buildStack(
 /* Lounge fit-out: 4-deck DJ pult + mixer, podcast table with two mic
    arms, gym rack + bench + barbell on the west wall (in view of the
    BEYOND camera), warm accents. */
-function buildLounge(scene: THREE.Scene, powerMats: ZoneHandles['powerMats']): void {
+function buildLounge(
+  scene: THREE.Scene,
+  powerMats: ZoneHandles['powerMats'],
+  lights: ZoneHandles['lights'],
+): void {
   const dark = new THREE.MeshStandardMaterial({ color: 0x24282d, metalness: 0.6, roughness: 0.5 });
+  const gymMetal = new THREE.MeshStandardMaterial({ color: 0x99a1aa, metalness: 0.8, roughness: 0.35 });
   const deckGlowAmber = new THREE.MeshBasicMaterial({ color: new THREE.Color(COL.amber) });
   const deckGlowCyan = new THREE.MeshBasicMaterial({ color: CYAN.clone().multiplyScalar(0.7) });
 
@@ -529,14 +537,23 @@ function buildLounge(scene: THREE.Scene, powerMats: ZoneHandles['powerMats']): v
   gym.box(0.14, 0.1, 1.1, -57.2, 1.92, 22.4); // crossbar
   gym.box(0.3, 0.06, 0.16, -57.05, 1.42, 21.9); // J-hooks
   gym.box(0.3, 0.06, 0.16, -57.05, 1.42, 22.9);
-  gym.cyl(0.025, 0.025, 2.0, 8, -57.0, 1.48, 22.4, Math.PI / 2); // barbell bar
-  for (const pz of [21.62, 21.78, 23.02, 23.18]) {
-    gym.cyl(0.21, 0.21, 0.07, 14, -57.0, 1.48, pz, Math.PI / 2); // plates
-  }
   gym.box(1.15, 0.12, 0.36, -55.9, 0.42, 22.4); // bench pad
   gym.box(0.1, 0.36, 0.3, -56.3, 0.18, 22.4);
   gym.box(0.1, 0.36, 0.3, -55.5, 0.18, 22.4);
   scene.add(gym.mesh(dark, true, false));
+  /* bar + plates read bright against the dark west wall */
+  const gymB = new GeoBatch();
+  gymB.cyl(0.025, 0.025, 2.0, 8, -57.0, 1.48, 22.4, Math.PI / 2); // barbell bar
+  for (const pz of [21.62, 21.78, 23.02, 23.18]) {
+    gymB.cyl(0.21, 0.21, 0.07, 14, -57.0, 1.48, pz, Math.PI / 2); // plates
+  }
+  scene.add(gymB.mesh(gymMetal, true, false));
+
+  /* warm accent light over the gym corner (rides the lounge group) */
+  const gymLight = new THREE.PointLight(0xffc890, 46, 13, 1.9);
+  gymLight.position.set(-55.2, 2.8, 22.4);
+  scene.add(gymLight);
+  lights.push({ light: gymLight, group: 4 });
 
   /* two extra warm wall dots on the south wall */
   const sconce = new GeoBatch();
@@ -635,12 +652,20 @@ function buildGallery(scene: THREE.Scene, powerMats: ZoneHandles['powerMats']): 
 
 export function buildZones(scene: THREE.Scene, stackData: StackData | null): ZoneHandles {
   const powerMats: ZoneHandles['powerMats'] = [];
+  const lights: ZoneHandles['lights'] = [];
   buildProof(scene, powerMats);
   const { scanMat } = buildWork(scene, powerMats);
   buildCage(scene, powerMats);
   buildStack(scene, stackData, powerMats);
-  buildLounge(scene, powerMats);
+  buildLounge(scene, powerMats, lights);
   buildDock(scene);
   buildGallery(scene, powerMats);
-  return { powerMats, scanMat };
+
+  /* cool accent light over the STACK mezzanine shelves (no shadow) */
+  const mezzLight = new THREE.PointLight(0x9fc4ff, 60, 18, 1.9);
+  mezzLight.position.set(50.6, MEZZ.y + 3.2, 14.4);
+  scene.add(mezzLight);
+  lights.push({ light: mezzLight, group: 2 });
+
+  return { powerMats, scanMat, lights };
 }

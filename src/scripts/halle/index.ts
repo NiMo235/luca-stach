@@ -133,6 +133,8 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
     addMat(dp.screenMat, 3);
     /* T-103 zone emissives ride their power group too */
     for (const pm of zones.powerMats) addMat(pm.mat, pm.group);
+    /* T-103 zone accent lights (gym corner, STACK mezzanine) */
+    for (const zl of zones.lights) addLight(zl.light, zl.group);
     const CONE_OPACITY = 0.16;
     const POOL_OPACITY = 0.5;
 
@@ -381,7 +383,7 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
 
         /* hotspot markers: bob + spin, dim at the docked station */
         const dockedStation = Math.min(6, Math.max(0, Math.round(p * 6)));
-        hotspots.update(t, dockedStation, hoverStation, minLevel(L[3]));
+        hotspots.update(t, dockedStation, hoverStation, minLevel(L[3]), camera.position);
 
         /* minimap live layer at 4 Hz (dots/camera reuse SVG elements) */
         if (minimap) {

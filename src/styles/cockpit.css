@@ -698,7 +698,8 @@
   stroke-width: 0.5;
   pointer-events: none;
 }
-/* BEYOND is the right-low panel: raise it clear of the open map */
-.flightdeck #beyond:is(.station-active, .panel-out) {
+/* right-side panels (PROOF/DOCK right-mid, WORK right-high, BEYOND
+   right-low) stay clear of the open minimap in the bottom-right corner */
+.flightdeck :is(#proof, #work, #beyond, #contact):is(.station-active, .panel-out) {
   padding-bottom: 15rem;
 }
