@@ -727,7 +727,8 @@
 
 /* ---- T-104: flightdeck-only DOM twins (hidden classic, shown here) -- */
 .flightdeck [data-fd-only] {
-  display: revert;
+  /* overrides the !important hide in global.css (higher specificity) */
+  display: revert !important;
 }
 .flightdeck [data-fd-hide] {
   display: none;

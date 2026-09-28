@@ -542,7 +542,8 @@ html.booting {
    stay hidden in the classic view; html.flightdeck (cockpit.css) shows
    them. data-fd-hide is the inverse (hidden only in the flightdeck). */
 [data-fd-only] {
-  display: none;
+  /* the twin contract must beat component display rules (e.g. .js .toy) */
+  display: none !important;
 }
 
 /* LOG: hash button mirrors the plain hash text (flightdeck twin) */
