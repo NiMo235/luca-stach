@@ -111,12 +111,12 @@ function floorTexture(aniso: number): THREE.CanvasTexture {
         }
       }
 
-      /* floor glyphs: the plane's UV flip renders canvas text mirrored
-         vertically in the world — pre-flip so it reads upright */
+      /* floor glyphs: canvas-top maps to world north, so upright canvas
+         text reads upright for a viewer looking north (the DOCK camera
+         faces TOR 1 → "01" must NOT be pre-flipped) */
       const floorText = (label: string, x: number, z: number) => {
         ctx.save();
         ctx.translate(X(x), Z(z));
-        ctx.scale(1, -1);
         ctx.fillText(label, 0, 0);
         ctx.restore();
       };
@@ -161,6 +161,8 @@ function floorTexture(aniso: number): THREE.CanvasTexture {
       };
       hz(43.4, -29.8, 15.4, 0.7);
       hz(43.4, -19.2, 15.4, 0.7);
+      hz(43.4, -29.8, 0.7, 11.3); /* west + east edges (T-103) */
+      hz(58.1, -29.8, 0.7, 11.3);
 
       /* faint wear: tire arcs near the crossing */
       ctx.strokeStyle = 'rgba(12,13,14,0.20)';

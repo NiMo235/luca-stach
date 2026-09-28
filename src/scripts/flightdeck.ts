@@ -152,6 +152,11 @@ export async function initFlightdeck(): Promise<boolean> {
   flyButtons.forEach((btn, i) =>
     btn.addEventListener('click', () => flyTo(i, true)),
   );
+  /* holo hotspots + minimap in the hall fire halle:fly (T-103) */
+  window.addEventListener('halle:fly', (e) => {
+    const i = (e as CustomEvent<{ station?: unknown }>).detail?.station;
+    if (typeof i === 'number') flyTo(i, true);
+  });
   document.addEventListener('click', (e) => {
     const a = (e.target as HTMLElement | null)?.closest?.('a[href^="#"]');
     if (!a) return;

@@ -202,7 +202,11 @@
     "tcSimAgv": "AGV",
     "tcSimTransit": "IN TRANSIT",
     "tcSimDwell": "Ø DWELL",
-    "tcSimModel": "MODEL"
+    "tcSimModel": "MODEL",
+    "mapTitle": "FLOOR PLAN",
+    "mapLabel": "Hall floor plan with zones",
+    "mapToggle": "Toggle floor plan",
+    "mapFly": "Fly to {station}"
   },
   "log": {
     "kicker": "// build log",

@@ -202,7 +202,11 @@
     "tcSimAgv": "AGV",
     "tcSimTransit": "IN FAHRT",
     "tcSimDwell": "Ø STANDZEIT",
-    "tcSimModel": "MODELL"
+    "tcSimModel": "MODELL",
+    "mapTitle": "GRUNDRISS",
+    "mapLabel": "Hallen-Grundriss mit Zonen",
+    "mapToggle": "Grundriss ein-/ausklappen",
+    "mapFly": "Flug zu {station}"
   },
   "log": {
     "kicker": "// build log",

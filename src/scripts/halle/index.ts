@@ -19,6 +19,11 @@ import { createPower } from './power';
 import { createSim } from './sim/world';
 import { createSimRender } from './sim/render';
 import { AGV_COUNT, AGV_WAIT } from './sim/agents';
+import { createHotspots } from './hotspots';
+import { createMinimap } from './minimap';
+import { buildZones, type StackData } from './geometry/zones';
+import { createPackSim } from './sim/packages';
+import { createPackRender } from './sim/packrender';
 import { COL } from './layout';
 
 export type { FlightWorld } from './types';
@@ -70,6 +75,29 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
     sim.setRate(0);
     const simR = createSimRender(scene, sim);
 
+    /* T-103: zone fit-out (data lanes, conveyor + Prüfstraße, cage
+       signage, skill bins, lounge gear, dock seals, gallery stelae).
+       Method/tool names arrive via the canvas data attribute (i18n). */
+    let stackData: StackData | null = null;
+    try {
+      stackData = JSON.parse(canvas.dataset.stack ?? 'null') as StackData | null;
+    } catch {
+      stackData = null;
+    }
+    const zones = buildZones(scene, stackData);
+
+    /* T-103: package sim — conveyor parcels + quote-lane packets */
+    const packSim = createPackSim(4711);
+    const packR = createPackRender(scene, packSim);
+
+    /* holo hotspot markers above the zone labels (tap = fly) —
+       created before the stats count so the title card stays exact */
+    const hotspots = createHotspots(scene, pulse.labelSprites);
+
+    /* minimap (DOM live layer; null when the markup is absent) */
+    const minimap = createMinimap(sim);
+    let mapAcc = 1; // force a first paint
+
     const tour = createTour();
     const stats = createStats(countScene(scene));
 
@@ -103,6 +131,10 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
     addMat(sp.yardHeadMat, 0);
     addMat(dp.monMat, 3);
     addMat(dp.screenMat, 3);
+    /* T-103 zone emissives ride their power group too */
+    for (const pm of zones.powerMats) addMat(pm.mat, pm.group);
+    /* T-103 zone accent lights (gym corner, STACK mezzanine) */
+    for (const zl of zones.lights) addLight(zl.light, zl.group);
     const CONE_OPACITY = 0.16;
     const POOL_OPACITY = 0.5;
 
@@ -131,9 +163,19 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
       const hits = raycaster.intersectObject(simR.agvMesh);
       return hits.length > 0 && hits[0].instanceId !== undefined ? hits[0].instanceId : -1;
     };
+    /* hotspot raycast — AGVs always win over hotspots (checked first) */
+    const raycastHotspot = (cx: number, cy: number): number => {
+      ndc.set((cx / window.innerWidth) * 2 - 1, -(cy / window.innerHeight) * 2 + 1);
+      raycaster.setFromCamera(ndc, camera);
+      return hotspots.stationFromHits(raycaster.intersectObjects(hotspots.hitTargets, false));
+    };
+    const flyToStation = (station: number) => {
+      window.dispatchEvent(new CustomEvent('halle:fly', { detail: { station } }));
+    };
 
     let downRec: { x: number; y: number; t: number; sy: number } | null = null;
     let hoverId = -1;
+    let hoverStation = -1; // hotspot under the pointer (-1 = none)
     let focusId = -1; // held AGV with holo tag
     let lastHoverCheck = 0;
     const ptr = { x: -1, y: -1, moved: false };
@@ -176,7 +218,12 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
         if (window.scrollY !== d.sy) return; // scroll gesture
         if (!isFreeTap(e)) return;
         const id = raycastAgv(e.clientX, e.clientY);
-        if (id >= 0) toggleHold(id);
+        if (id >= 0) {
+          toggleHold(id);
+          return;
+        }
+        const st = raycastHotspot(e.clientX, e.clientY);
+        if (st >= 0) flyToStation(st);
       },
       { passive: true },
     );
@@ -253,6 +300,18 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
       working(): number[] {
         return sim.agvs.filter((a) => a.state === 'working').map((a) => a.id);
       },
+      /* hotspot markers projected to screen px (shot scripts) */
+      hotspots(): unknown {
+        return [0, 1, 2, 3, 4, 5, 6].map((i) => {
+          const w = hotspots.pos(i);
+          tmpV.set(w.x, w.y, w.z).project(camera);
+          return {
+            station: i,
+            sx: +(((tmpV.x + 1) / 2) * window.innerWidth).toFixed(0),
+            sy: +(((1 - tmpV.y) / 2) * window.innerHeight).toFixed(0),
+          };
+        });
+      },
     };
 
     /* ---- telemetry under the title card (model values, tagged) ---- */
@@ -281,9 +340,15 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
 
         /* simulation: rate ramps up with the power; the fixed-step world
            pauses implicitly because update() is not called while hidden */
-        sim.setRate(power.done ? 1 : Math.max(0, (power.progress - 0.12) / 0.8));
+        const simRate = power.done ? 1 : Math.max(0, (power.progress - 0.12) / 0.8);
+        sim.setRate(simRate);
         sim.advance(dt);
         simR.update(sim.alpha());
+        packSim.advance(dt * simRate);
+        packR.update();
+
+        /* scanner light curtain shimmer */
+        zones.scanMat.opacity = (0.09 + 0.1 * (0.5 + 0.5 * Math.sin(t * 5.2))) * minLevel(L[2]);
 
         tour.apply(camera, p, transit, dt, now);
 
@@ -316,6 +381,25 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
         const blink = Math.sin(t * 2.6) > 0.2 ? 1 : 0.06;
         pulse.beaconMat.color.setHex(0xff3524).multiplyScalar((0.25 + blink * 0.9) * minLevel(L[0]));
 
+        /* hotspot markers: bob + spin, dim at the docked station */
+        const dockedStation = Math.min(6, Math.max(0, Math.round(p * 6)));
+        hotspots.update(t, dockedStation, hoverStation, minLevel(L[3]), camera.position);
+
+        /* minimap live layer at 4 Hz (dots/camera reuse SVG elements) */
+        if (minimap) {
+          mapAcc += dt;
+          if (mapAcc >= 0.25) {
+            mapAcc = 0;
+            camera.getWorldDirection(tmpV);
+            minimap.update(
+              camera.position.x,
+              camera.position.z,
+              THREE.MathUtils.radToDeg(Math.atan2(tmpV.x, -tmpV.z)),
+              dockedStation,
+            );
+          }
+        }
+
         /* held AGV expired (8 s timeout) → release the tag */
         if (focusId >= 0 && !sim.agvs[focusId].hold) {
           focusId = -1;
@@ -324,7 +408,8 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
           simR.setFocus(focusId, tagLabel(focusId), true);
         }
 
-        /* hover raycast (throttled): pointer cursor + ring on desktop */
+        /* hover raycast (throttled): pointer cursor + ring on desktop.
+           AGVs win over hotspots; both give a pointer cursor */
         if (ptr.moved && now - lastHoverCheck > 120) {
           ptr.moved = false;
           lastHoverCheck = now;
@@ -332,10 +417,15 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
           const overDom =
             el instanceof Element && (!!el.closest(BLOCK_SEL) || !!el.closest(PANEL_SEL));
           const id = overDom ? -1 : raycastAgv(ptr.x, ptr.y);
+          const st = id >= 0 || overDom ? -1 : raycastHotspot(ptr.x, ptr.y);
           if (id !== hoverId) {
             hoverId = id;
             simR.setHover(id);
-            document.documentElement.style.cursor = id >= 0 ? 'pointer' : '';
+          }
+          if (st !== hoverStation) hoverStation = st;
+          const cursor = id >= 0 || st >= 0 ? 'pointer' : '';
+          if (document.documentElement.style.cursor !== cursor) {
+            document.documentElement.style.cursor = cursor;
           }
         }
 

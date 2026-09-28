@@ -48,6 +48,10 @@ interface Dict {
     tcSimTransit: string;
     tcSimDwell: string;
     tcSimModel: string;
+    mapTitle: string;
+    mapLabel: string;
+    mapToggle: string;
+    mapFly: string;
   };
   log: Record<string, any>;
   work: Record<string, any>;
@@ -84,4 +88,9 @@ const navItems = [
   <Beyond {...t.beyond} />
 </main>
 <Contact {...t.contact} />
-<FlightDeck hud={t.hud} langLabel={t.nav.langLabel} langHref={t.nav.langHref} />
+<FlightDeck
+  hud={t.hud}
+  langLabel={t.nav.langLabel}
+  langHref={t.nav.langHref}
+  stackData={{ tools: t.stack.tools, methods: t.stack.methods }}
+/>
