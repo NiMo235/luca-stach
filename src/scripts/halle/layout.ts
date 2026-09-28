@@ -82,7 +82,7 @@ export const HOTSPOTS = [
   { station: 1, x: 47, y: 8.6, z: 21.5 }, // PROOF — Leitstand
   { station: 2, x: -49.6, y: 12.5, z: 12 }, // LOG — aisle B
   { station: 3, x: 6, y: 10.2, z: 0 }, // WORK — crossing / conveyor
-  { station: 4, x: 46, y: 10.8, z: 12 }, // STACK — mezzanine
+  { station: 4, x: 50, y: 10.8, z: 16 }, // STACK — over the shelf run
   { station: 5, x: -45, y: 7.6, z: 24.5 }, // BEYOND — lounge
   { station: 6, x: -50, y: 8.2, z: -26.5 }, // DOCK — TOR 1
 ] as const;

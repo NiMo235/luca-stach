@@ -13,9 +13,9 @@ export const POS_KEYS: Array<[number, number, number]> = [
   [-49.6, 5.8, 21.8], //  guide: high over the gallery rail, aligned with aisle B
   [-49.6, 3.4, 13.5], // 03 LOG — inside the high-bay aisle
   [-49.0, 4.5, 20.8], //   guide: leave the rack block due south first
-  [10, 6.5, 4], // 04 WORK — crossing, slightly elevated
-  [30, 7.5, 10], //       guide: approach over the mezzanine edge
-  [45.5, 8.6, 12], // 05 STACK — on the mezzanine
+  [4, 5.6, -2], // 04 WORK — closer to the loop, Prüfstraße ahead-left
+  [30, 9.2, 10.5], //    guide: high approach, clears the west mezz rail
+  [44, 8.9, 26.5], // 05 STACK — south end of the mezz, shelf run ahead-right
   [-30, 2.7, 12], //      guide: descend north-west of the lounge (open side)
   [-35.6, 2.35, 21.8], // 06 BEYOND — lounge NE corner, looking into the room
   [-24, 3.8, 4], //       guide: leave north through the open side first
@@ -29,11 +29,11 @@ export const LOOK_KEYS: Array<[number, number, number]> = [
   [-40, 5, 14], //      pan toward the rack block
   [-49.6, 5.2, -10], // 03 straight down the aisle
   [-20, 3, 4],
-  [-8, 1.2, -10], // 04 down at the crossing + racks behind
+  [-1, 1.2, -19.5], // 04 the scanner portal + loop, AGVs crossing in front
   [40, 6.5, 10],
-  [52.5, 7.0, 13.5], // 05 the skill shelves on the mezzanine (T-103: the bins ARE the motif)
+  [52.2, 7.0, 8], // 05 north along the shelf run — bins recede center→right
   [-30, 2.5, 18], //    pan down toward the lounge
-  [-52, 1.5, 27.2], // 06 deep into the warm lounge corner
+  [-52, 1.5, 25.6], // 06 west: DJ pult near-left, podcast dead-center deep
   [-40, 3, -18],
   [-50.5, 2.6, -29.5], // 07 the open TOR 1 and the yard beyond
 ];

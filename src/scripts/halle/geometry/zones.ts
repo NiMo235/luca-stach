@@ -514,20 +514,29 @@ function buildLounge(
   scene.add(mixer.mesh(darkSteel, false, false));
   powerMats.push({ mat: deckGlowAmber, group: 4 }, { mat: deckGlowCyan, group: 4 });
 
-  /* podcast table + two mic arms + stools */
+  /* podcast table deep in the room (out of the camera's near field),
+     two stools + jointed mic arms: base, two segments with a visible
+     joint ball, mic body + pop-filter head */
   const pod = new GeoBatch();
-  pod.cyl(0.68, 0.68, 0.05, 20, -38.5, 0.74, 22.6); // round top
-  pod.cyl(0.06, 0.08, 0.72, 8, -38.5, 0.37, 22.6); // leg
-  pod.cyl(0.2, 0.24, 0.44, 10, -37.35, 0.22, 23.35); // stool E
-  pod.cyl(0.2, 0.24, 0.44, 10, -39.65, 0.22, 21.9); // stool W
+  pod.cyl(0.68, 0.68, 0.05, 20, -53.6, 0.74, 25.7); // round top
+  pod.cyl(0.06, 0.08, 0.72, 8, -53.6, 0.37, 25.7); // leg
+  pod.cyl(0.2, 0.24, 0.44, 10, -53.6, 0.22, 26.8); // stool S
+  pod.cyl(0.2, 0.24, 0.44, 10, -53.6, 0.22, 24.6); // stool N
   scene.add(pod.mesh(dark, true, false));
   const mics = new GeoBatch();
-  /* arm toward stool E */
-  mics.cyl(0.02, 0.02, 0.55, 6, -38.1, 1.05, 22.95, 0.9, -0.7);
-  mics.cyl(0.035, 0.03, 0.16, 8, -37.85, 1.28, 23.15, 0.9, -0.7);
-  /* arm toward stool W */
-  mics.cyl(0.02, 0.02, 0.55, 6, -38.9, 1.05, 22.25, -0.9, 0.7);
-  mics.cyl(0.035, 0.03, 0.16, 8, -39.15, 1.28, 22.05, -0.9, 0.7);
+  for (const dir of [1, -1]) {
+    const bz = 25.7 + dir * 0.35; // arm base on the table edge
+    mics.cyl(0.04, 0.05, 0.07, 8, -53.6, 0.8, bz); // table clamp base
+    mics.cyl(0.016, 0.016, 0.4, 6, -53.6, 0.98, 25.7 + dir * 0.46, 0.6 * dir); // lower arm
+    const joint = new THREE.SphereGeometry(0.032, 8, 6);
+    joint.translate(-53.6, 1.16, 25.7 + dir * 0.57);
+    mics.add(joint);
+    mics.cyl(0.014, 0.014, 0.36, 6, -53.6, 1.24, 25.7 + dir * 0.83, 1.1 * dir); // upper arm
+    mics.cyl(0.026, 0.03, 0.14, 8, -53.6, 1.3, 25.7 + dir * 1.05, 1.35 * dir); // mic body
+    const head = new THREE.SphereGeometry(0.045, 10, 8);
+    head.translate(-53.6, 1.32, 25.7 + dir * 1.14);
+    mics.add(head); // pop-filter ball
+  }
   scene.add(mics.mesh(darkSteel, false, false));
 
   /* gym corner on the WEST wall (in view of the BEYOND camera) */
