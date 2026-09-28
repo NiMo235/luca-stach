@@ -376,6 +376,18 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
           avgT: +packSim.avgT.toFixed(2),
         };
       },
+      /* T-104: Prüfstraße error quota + counters (shot/test scripts) */
+      errq(): number {
+        return interact.cycleErrQuota();
+      },
+      errqStats(): unknown {
+        return {
+          quota: packSim.errQuota,
+          checked: packSim.checked,
+          diverted: packSim.diverted,
+          siding: packSim.sidingCount,
+        };
+      },
     };
 
     /* ---- telemetry under the title card (model values, tagged) ---- */

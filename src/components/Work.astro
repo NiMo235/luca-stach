@@ -13,9 +13,16 @@ interface Props {
   heading: string;
   sub: string;
   cases: Case[];
+  errq: {
+    label: string;
+    checked: string;
+    diverted: string;
+    model: string;
+    aria: string;
+  };
 }
 
-const { kicker, heading, sub, cases } = Astro.props;
+const { kicker, heading, sub, cases, errq } = Astro.props;
 ---
 
 <section id="work" class="relative border-t border-paper/10 py-20 sm:py-28">
@@ -58,6 +65,36 @@ const { kicker, heading, sub, cases } = Astro.props;
                   </li>
                 ))}
               </ul>
+              {
+                /* Prüfstraße twin (T-104): mirrors the scanner portal in the
+                   hall — tapping it cycles the same error quota */
+                c.id === '02' && (
+                  <div class="mt-4 border border-paper/10 bg-ink px-3 py-2.5" data-fd-only>
+                    <p class="font-mono text-[10px] tracking-wider text-faint uppercase">
+                      <b class="text-paper/80" data-errq-checked>
+                        0
+                      </b>{' '}
+                      {errq.checked} ·{' '}
+                      <b class="text-paper/80" data-errq-diverted>
+                        0
+                      </b>{' '}
+                      {errq.diverted}
+                      <span class="ml-2 border border-paper/20 px-1 py-0.5 text-faint">
+                        {errq.model}
+                      </span>
+                    </p>
+                    <button
+                      type="button"
+                      data-errq
+                      data-label={errq.label}
+                      aria-label={errq.aria}
+                      class="mt-2 border border-acid/50 px-3 py-1.5 font-mono text-[11px] tracking-wider text-acid uppercase transition-colors hover:bg-acid hover:text-ink"
+                    >
+                      {errq.label}: 18 %
+                    </button>
+                  </div>
+                )
+              }
               <ul class="mt-5 flex flex-wrap gap-1.5">
                 {c.tags.map((tag) => (
                   <li class="bg-acid-dim px-2 py-0.5 font-mono text-[10px] text-acid">

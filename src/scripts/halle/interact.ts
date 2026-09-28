@@ -22,7 +22,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { Sim } from './sim/world';
 import type { PackSim } from './sim/packages';
-import { COL, DOORS, RACKS, LEITSTAND } from './layout';
+import { COL, DOORS, RACKS, LEITSTAND, CONV } from './layout';
 import type { DockSignal } from './geometry/zones';
 import { canvasTexture } from './util';
 
@@ -104,6 +104,9 @@ export interface Interact {
   logPalletPos(i: number): { x: number; y: number; z: number };
   setLeitstand(mode: 'manual' | 'pipeline'): void;
   switchPos(): { x: number; y: number; z: number };
+  /** cycle the Prüfstraße error quota 5 → 18 → 35 → 5 %; returns the new quota */
+  cycleErrQuota(): number;
+  portalPos(): { x: number; y: number; z: number };
 }
 
 export function createInteract(ctx: InteractCtx): Interact {
@@ -726,6 +729,84 @@ export function createInteract(ctx: InteractCtx): Interact {
     drawReadout(avgT, q);
   }
 
+  /* ============================ WORK =================================
+     Prüfstraße: tap on the scanner portal cycles the error quota
+     5 → 18 → 35 → 5 %. The portal holo shows the current quota; the
+     counter (checked / diverted) lives as a DOM twin in the WORK
+     panel at case 02 (Frachtrechnungsprüfung). Numbers are a model. */
+
+  const quotaCanvas = document.createElement('canvas');
+  quotaCanvas.width = 128;
+  quotaCanvas.height = 64;
+  const quotaCtx = quotaCanvas.getContext('2d')!;
+  const quotaTex = new THREE.CanvasTexture(quotaCanvas);
+  quotaTex.colorSpace = THREE.SRGBColorSpace;
+  let quotaCache = '';
+  const drawQuota = () => {
+    const pct = `${Math.round(packSim.errQuota * 100)} %`; // language-neutral
+    if (pct === quotaCache) return;
+    quotaCache = pct;
+    const c = quotaCtx;
+    c.clearRect(0, 0, 128, 64);
+    c.fillStyle = 'rgba(6,10,8,0.72)';
+    c.fillRect(0, 0, 128, 64);
+    c.strokeStyle = 'rgba(255,138,122,0.8)';
+    c.lineWidth = 2;
+    c.strokeRect(2, 2, 124, 60);
+    c.fillStyle = '#ff8a7a';
+    c.font = '700 30px "JetBrains Mono", monospace';
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.fillText(pct, 64, 34);
+    quotaTex.needsUpdate = true;
+  };
+  const quotaSprite = new THREE.Sprite(
+    new THREE.SpriteMaterial({ map: quotaTex, transparent: true, depthWrite: false }),
+  );
+  quotaSprite.scale.set(1.15, 0.58, 1);
+  quotaSprite.position.set(CONV.scanX, 3.35, CONV.zN);
+  scene.add(quotaSprite);
+
+  const portalHit = new THREE.Mesh(new THREE.BoxGeometry(2.2, 2.8, 2.2), HIT_MAT);
+  portalHit.position.set(CONV.scanX, 1.5, CONV.zN);
+  scene.add(portalHit);
+  hitTargets.push(portalHit);
+
+  /* DOM twin (WORK panel, case 02) */
+  const errqBtn = document.querySelector<HTMLButtonElement>('[data-errq]');
+  const errqChecked = document.querySelector<HTMLElement>('[data-errq-checked]');
+  const errqDiverted = document.querySelector<HTMLElement>('[data-errq-diverted]');
+
+  function applyErrQuota(): void {
+    const pct = `${Math.round(packSim.errQuota * 100)} %`;
+    drawQuota();
+    if (errqBtn) {
+      const label = errqBtn.dataset.label ?? '';
+      errqBtn.textContent = label ? `${label}: ${pct}` : pct;
+    }
+  }
+  function cycleErrQuota(): number {
+    packSim.cycleErrQuota();
+    applyErrQuota();
+    return packSim.errQuota;
+  }
+  handlers.set(portalHit, () => {
+    cycleErrQuota();
+  });
+  errqBtn?.addEventListener('click', () => {
+    cycleErrQuota();
+  });
+  applyErrQuota();
+
+  let errqAcc = 1;
+  function updateWork(dt: number): void {
+    errqAcc += dt;
+    if (errqAcc < 0.5) return;
+    errqAcc = 0;
+    if (errqChecked) errqChecked.textContent = String(packSim.checked);
+    if (errqDiverted) errqDiverted.textContent = String(packSim.diverted);
+  }
+
   /* ========================== public ================================ */
 
   return {
@@ -746,6 +827,7 @@ export function createInteract(ctx: InteractCtx): Interact {
       updateDock(dt);
       updateLog(dt);
       updateProof(dt);
+      updateWork(dt);
     },
     requestDock,
     dockPalletPos(i) {
@@ -760,6 +842,10 @@ export function createInteract(ctx: InteractCtx): Interact {
     setLeitstand,
     switchPos() {
       return { x: LEITSTAND.x0 - 0.45, y: LEITSTAND.floorY + 1.5, z: 22 };
+    },
+    cycleErrQuota,
+    portalPos() {
+      return { x: CONV.scanX, y: 1.5, z: CONV.zN };
     },
   };
 }

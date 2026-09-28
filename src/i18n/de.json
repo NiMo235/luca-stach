@@ -350,7 +350,14 @@
           "Automotive"
         ]
       }
-    ]
+    ],
+    "errq": {
+      "label": "Fehlerquote",
+      "checked": "geprüft",
+      "diverted": "ausgeleitet",
+      "model": "Modell",
+      "aria": "Fehlerquote der Prüfstraße umschalten"
+    }
   },
   "stack": {
     "kicker": "// stack & methods",

@@ -3,11 +3,12 @@
 /* systems with path parameters instead of the AGV graph:              */
 /*                                                                     */
 /* 1. Förderloop (WORK): packages ride an oval roller conveyor. At the */
-/*    scanner portal a fixed quota is flagged red; red packages are    */
-/*    pushed onto the rejection siding (Abstellgleis) at the diverter, */
-/*    park there briefly, get "collected" and the belt slot fills up   */
-/*    again on the next wrap. Slots stay evenly spaced — no collisions */
-/*    by construction.                                                 */
+/*    scanner portal a quota (5/18/35 %, cycled per tap, T-104) is     */
+/*    flagged red; red packages are pushed onto the rejection siding   */
+/*    (Abstellgleis) at the diverter and stack there (max MAX_SIDING). */
+/*    A red parcel at a full siding triggers the "Klärfall" reset: the */
+/*    stack is collected and the slots rejoin the belt on wrap. Slots  */
+/*    stay evenly spaced — no collisions by construction.              */
 /* 2. Quote lanes (PROOF): small data packets on two elevated bands    */
 /*    between the hall and the Leitstand — manual lane (slow, inbound) */
 /*    and pipeline lane (3× faster, outbound). Pure visual for now;    */
@@ -30,10 +31,15 @@ const ZC = (CONV.zN + CONV.zS) / 2; // arc center z
 export const CONV_COUNT = 26;
 const SPACING = LOOP_LEN / CONV_COUNT;
 const BELT_SPEED = 0.9; // m/s
-const RED_QUOTA = 0.18;
 const DIV_S = CONV.divX - CONV.x0; // arclength of the diverter on the north straight
+const SCAN_S = CONV.scanX - CONV.x0; // scanner portal arclength
 const BRANCH_LEN = CONV.zN - CONV.beltW / 2 - CONV.stubZ; // belt edge → siding end
-const SIDING_DWELL = 5;
+
+/* T-104: the scanner portal cycles the error quota 5 → 18 → 35 → 5 %.
+   Diverted parcels stack on the siding (max MAX_SIDING); the next red
+   parcel at a full siding triggers the "Klärfall"-Reset. */
+export const ERR_QUOTAS = [0.05, 0.18, 0.35];
+export const MAX_SIDING = 6;
 
 export interface ConvPack {
   visible: boolean;
@@ -48,7 +54,14 @@ interface Slot {
   red: boolean;
   div: boolean; // currently diverted
   bs: number; // branch distance (when diverted)
-  parkT: number; // dwell remaining on the siding
+  stackIdx: number; // stack slot on the siding (-1 while on the belt)
+  lastS: number; // chain position last tick (scanner counting)
+}
+
+/* siding stack: two columns × three rows along the stub */
+function stackPos(k: number, out: { x: number; z: number }): void {
+  out.x = CONV.divX + (k < 3 ? -0.26 : 0.26);
+  out.z = CONV.zN - CONV.beltW / 2 - 0.55 - (k % 3) * 0.62;
 }
 
 /** point on the oval for arclength s (0 at the west end of the north straight) */
@@ -104,6 +117,14 @@ export interface PackSim {
   quote: QuotePack[];
   /** rejected parcels currently parked on the siding (visible proof) */
   sidingCount: number;
+  /* Prüfstraße error quota (T-104) */
+  readonly errQuota: number;
+  /** parcels that crossed the scanner (model counter) */
+  readonly checked: number;
+  /** parcels pushed onto the siding (model counter) */
+  readonly diverted: number;
+  /** cycle 5 → 18 → 35 → 5 %, re-rolls the belt verdicts; returns the new quota */
+  cycleErrQuota(): number;
   /* Leitstand model (T-104) */
   readonly mode: LeitstandMode;
   /** request backlog (model, may be fractional; display floors it) */
@@ -120,14 +141,37 @@ export interface PackSim {
 export function createPackSim(seed = 4711): PackSim {
   const rnd = rng(seed);
 
+  /* Prüfstraße state (T-104): quota cycles, siding stacks to MAX_SIDING */
+  let quotaIdx = 1; // start at 18 % — the T-103 default
+  let checked = 0;
+  let diverted = 0;
+  let siding = 0;
+
   const slots: Slot[] = [];
   for (let i = 0; i < CONV_COUNT; i++) {
-    slots.push({ red: rnd() < RED_QUOTA, div: false, bs: 0, parkT: 0 });
+    slots.push({
+      red: rnd() < ERR_QUOTAS[quotaIdx],
+      div: false,
+      bs: 0,
+      stackIdx: -1,
+      lastS: (i * SPACING) % LOOP_LEN,
+    });
   }
   const conv: ConvPack[] = [];
   for (let i = 0; i < CONV_COUNT; i++) {
     conv.push({ visible: true, x: 0, y: CONV.beltY + 0.22, z: 0, ry: 0, red: slots[i].red });
   }
+
+  /* collect a siding parcel: slot rejoins the belt on wrap, new verdict */
+  const collectSlot = (i: number): void => {
+    const slot = slots[i];
+    slot.div = false;
+    slot.bs = 0;
+    slot.stackIdx = -1;
+    slot.red = rnd() < ERR_QUOTAS[quotaIdx];
+    conv[i].red = slot.red;
+    conv[i].visible = false;
+  };
 
   const quote: QuotePack[] = [];
   for (let i = 0; i < QUOTE_COUNT; i++) {
@@ -141,7 +185,6 @@ export function createPackSim(seed = 4711): PackSim {
   }
 
   let baseS = 0;
-  let sidingCount = 0;
   /* Leitstand model state (T-104) */
   let mode: LeitstandMode = 'manual';
   let quotesPerDay = 10;
@@ -149,12 +192,33 @@ export function createPackSim(seed = 4711): PackSim {
   let queueLen = 0;
   let servedTotal = 0;
   const tmp = { x: 0, z: 0, ry: 0 };
+  const stackTmp = { x: 0, z: 0 };
 
   return {
     conv,
     quote,
     get sidingCount() {
-      return sidingCount;
+      return siding;
+    },
+    get errQuota() {
+      return ERR_QUOTAS[quotaIdx];
+    },
+    get checked() {
+      return checked;
+    },
+    get diverted() {
+      return diverted;
+    },
+    cycleErrQuota() {
+      quotaIdx = (quotaIdx + 1) % ERR_QUOTAS.length;
+      for (let i = 0; i < CONV_COUNT; i++) {
+        const slot = slots[i];
+        if (!slot.div) {
+          slot.red = rnd() < ERR_QUOTAS[quotaIdx];
+          conv[i].red = slot.red;
+        }
+      }
+      return ERR_QUOTAS[quotaIdx];
     },
     get mode() {
       return mode;
@@ -177,41 +241,52 @@ export function createPackSim(seed = 4711): PackSim {
     },
     advance(dt) {
       baseS = (baseS + BELT_SPEED * dt) % LOOP_LEN;
-      let parked = 0;
       for (let i = 0; i < CONV_COUNT; i++) {
         const slot = slots[i];
         const p = conv[i];
         const s = (baseS + i * SPACING) % LOOP_LEN;
         if (slot.div) {
-          if (slot.parkT > 0) {
-            /* parked on the siding, waiting to be collected */
-            slot.parkT -= dt;
-            parked++;
-            if (slot.parkT <= 0) {
-              slot.div = false; // collected — the slot rejoins the belt on wrap
-              slot.red = rnd() < RED_QUOTA; // new parcel, new verdict
-              p.red = slot.red;
-              p.visible = false;
-            }
+          /* diverted: slide down the stub, then park on the stack slot —
+             it stays until the Klärfall reset collects the whole stack */
+          if (slot.bs < BRANCH_LEN) {
+            slot.bs = Math.min(BRANCH_LEN, slot.bs + BELT_SPEED * dt);
+          }
+          if (slot.bs >= BRANCH_LEN && slot.stackIdx >= 0) {
+            stackPos(slot.stackIdx, stackTmp);
+            p.x = stackTmp.x;
+            p.z = stackTmp.z;
           } else {
-            slot.bs += BELT_SPEED * dt;
-            if (slot.bs >= BRANCH_LEN) {
-              slot.bs = BRANCH_LEN;
-              slot.parkT = SIDING_DWELL;
-              parked++;
-            }
-            p.visible = true;
             p.x = CONV.divX;
             p.z = CONV.zN - CONV.beltW / 2 - slot.bs;
-            p.y = CONV.beltY + 0.22;
-            p.ry = 0;
           }
+          p.visible = true;
+          p.y = CONV.beltY + 0.22;
+          p.ry = 0;
+          slot.lastS = s;
           continue;
         }
-        /* diverter: red parcels leave the loop */
-        if (slot.red && s >= DIV_S && s < DIV_S + BELT_SPEED * dt * 2 + 0.01) {
+        /* scanner: count every visible parcel crossing the portal — and
+           this is where the verdict lands: fresh roll per pass, so red
+           parcels keep flowing instead of the belt running out of them */
+        if (p.visible && slot.lastS < SCAN_S && s >= SCAN_S) {
+          checked++;
+          slot.red = rnd() < ERR_QUOTAS[quotaIdx];
+          p.red = slot.red;
+        }
+        /* diverter: red parcels leave the loop onto the siding */
+        if (slot.red && slot.lastS < DIV_S && s >= DIV_S) {
+          if (siding >= MAX_SIDING) {
+            /* siding full → Klärfall: the stack is cleared, slots rejoin */
+            for (let j = 0; j < CONV_COUNT; j++) {
+              if (slots[j].div && slots[j].stackIdx >= 0) collectSlot(j);
+            }
+            siding = 0;
+          }
           slot.div = true;
           slot.bs = 0;
+          slot.stackIdx = siding++;
+          diverted++;
+          slot.lastS = s;
           continue;
         }
         /* hidden slots wait for their chain position to wrap past 0 */
@@ -221,8 +296,8 @@ export function createPackSim(seed = 4711): PackSim {
         p.z = tmp.z;
         p.y = CONV.beltY + 0.22;
         p.ry = tmp.ry;
+        slot.lastS = s;
       }
-      sidingCount = parked;
 
       /* quote packets: mode sets the band speed; the model below decides
          how much work actually gets through (queue builds / drains) */

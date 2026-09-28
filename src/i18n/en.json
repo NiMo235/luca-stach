@@ -350,7 +350,14 @@
           "Automotive"
         ]
       }
-    ]
+    ],
+    "errq": {
+      "label": "Error rate",
+      "checked": "checked",
+      "diverted": "diverted",
+      "model": "model",
+      "aria": "Cycle the inspection line error rate"
+    }
   },
   "stack": {
     "kicker": "// stack & methods",
