@@ -560,35 +560,33 @@
 }
 
 /* ---- minimap / floor plan (T-103) ------------------------------------
-   bottom-right, above the audio cluster. COLLAPSED by default on every
-   viewport (it is only the small GRUNDISS toggle then); when the user
-   opens it, it gets a solid background and may overlap a panel edge —
-   that is the user's choice. Panels keep their exact main-branch
-   geometry: no padding/height changes here. */
+   T-104: the collapsed toggle lives in the audio row (bottom-right),
+   left of the AUDIO button — no more overlap with the panel bottom
+   edge at DOCK/BEYOND. The open plan floats upward from the toggle;
+   it gets a solid background and may overlap a panel edge — that is
+   the user's choice. Panels keep their exact main-branch geometry. */
 #halle-map {
   display: none;
 }
 .flightdeck #halle-map {
   display: block;
-  position: fixed;
-  right: 24px;
-  bottom: 58px;
-  width: 244px;
+  position: relative; /* anchor for the upward-floating plan body */
   z-index: 20;
   font-family: var(--font-mono);
   font-size: 10px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
+  pointer-events: auto;
 }
 #halle-map .halle-map-toggle {
   pointer-events: auto;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  width: 100%;
+  gap: 8px;
   background: color-mix(in srgb, var(--color-ink) 78%, transparent);
   border: 1px solid color-mix(in srgb, var(--color-paper) 20%, transparent);
-  padding: 4px 8px;
+  padding: 4px 10px;
   font: inherit;
   letter-spacing: inherit;
   text-transform: inherit;
@@ -634,10 +632,13 @@
   transform: rotate(-45deg);
 }
 #halle-map .halle-map-body {
+  /* open state floats upward over the world (and possibly a panel
+     edge): nearly solid so the plan stays readable on any backdrop */
+  position: absolute;
+  bottom: calc(100% + 6px);
+  right: 0;
+  width: 244px;
   border: 1px solid color-mix(in srgb, var(--color-paper) 20%, transparent);
-  border-top: 0;
-  /* open state floats over the world (and possibly a panel edge):
-     nearly solid so the plan stays readable on any backdrop */
   background: color-mix(in srgb, var(--color-ink) 93%, transparent);
 }
 #halle-map[data-collapsed='true'] .halle-map-body {
@@ -722,4 +723,13 @@
   stroke: var(--color-ink);
   stroke-width: 0.5;
   pointer-events: none;
+}
+
+/* ---- T-104: flightdeck-only DOM twins (hidden classic, shown here) -- */
+.flightdeck [data-fd-only] {
+  /* overrides the !important hide in global.css (higher specificity) */
+  display: revert !important;
+}
+.flightdeck [data-fd-hide] {
+  display: none;
 }

@@ -136,6 +136,16 @@
       "paybackLabel": "Amortisation",
       "paybackUnit": "Monate",
       "note": "modell: 67 % Zeitersparnis · 250 Arbeitstage · 25 k€ Baukosten · 45 €/h"
+    },
+    "ls": {
+      "title": "// leitstand — angebots-pipeline",
+      "model": "modell",
+      "tLabel": "Ø min/angebot",
+      "queueLabel": "queue",
+      "modeLabel": "modus",
+      "manual": "manuell",
+      "pipeline": "pipeline",
+      "switchAria": "Leitstand-Modus zwischen manuell und Pipeline umschalten"
     }
   },
   "ticker": {
@@ -206,12 +216,16 @@
     "mapTitle": "GRUNDRISS",
     "mapLabel": "Hallen-Grundriss mit Zonen",
     "mapToggle": "Grundriss ein-/ausklappen",
-    "mapFly": "Flug zu {station}"
+    "mapFly": "Flug zu {station}",
+    "fdManual": "MANUELL",
+    "fdPipeline": "PIPELINE",
+    "fdQueue": "QUEUE"
   },
   "log": {
     "kicker": "// build log",
     "heading": "Verlauf als Commit-Log.",
     "sub": "Jeder Eintrag ein Release. Jede Zeile produktiv.",
+    "request": "Station {hash} in der Halle anfahren",
     "entries": [
       {
         "hash": "a1b2c3d",
@@ -337,15 +351,12 @@
         ]
       }
     ],
-    "wh": {
-      "title": "// mini-game — hochregal",
-      "hint": "paket wählen → freien slot klicken",
-      "queueLabel": "eingang",
-      "slotsLabel": "slots",
-      "optimize": "optimize",
-      "reset": "reset",
-      "full": "warehouse full — optimize?",
-      "pkgLabel": "Paket"
+    "errq": {
+      "label": "Fehlerquote",
+      "checked": "geprüft",
+      "diverted": "ausgeleitet",
+      "model": "Modell",
+      "aria": "Fehlerquote der Prüfstraße umschalten"
     }
   },
   "stack": {

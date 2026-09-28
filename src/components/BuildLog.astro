@@ -14,9 +14,10 @@ interface Props {
   heading: string;
   sub: string;
   entries: Entry[];
+  requestAria: string;
 }
 
-const { kicker, heading, sub, entries } = Astro.props;
+const { kicker, heading, sub, entries, requestAria } = Astro.props;
 const typeColors: Record<string, string> = {
   feat: 'text-acid',
   chore: 'text-warm',
@@ -57,9 +58,20 @@ const typeColors: Record<string, string> = {
                   i % 2 === 0 ? 'sm:mr-auto' : 'sm:ml-auto',
                 ]}
               >
-                <article class="card-hover border border-paper/10 bg-ink-2 p-5 sm:p-6">
+                <article class="card-hover border border-paper/10 bg-ink-2 p-5 sm:p-6" data-log-entry={i}>
                   <p class="font-mono text-[11px] text-faint">
-                    <span class="text-acid">{entry.hash}</span>
+                    {/* classic view: plain hash · flightdeck: a button that
+                        requests the pallet in the hall (halle:log) */}
+                    <span class="text-acid" data-fd-hide>{entry.hash}</span>
+                    <button
+                      type="button"
+                      class="log-hash-btn text-acid"
+                      data-fd-only
+                      data-log-req={i}
+                      aria-label={requestAria.replace('{hash}', entry.hash)}
+                    >
+                      {entry.hash}
+                    </button>
                     <span class:list={['ml-2 font-bold', typeColors[entry.type] ?? 'text-paper']}>
                       {entry.type}:
                     </span>

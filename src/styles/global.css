@@ -387,70 +387,6 @@ html.booting {
   box-shadow: 0 0 12px color-mix(in srgb, var(--color-acid) 65%, transparent);
 }
 
-/* WORK: warehouse grid */
-.wh-queue {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  padding: 6px;
-  border: 1px dashed color-mix(in srgb, var(--color-paper) 18%, transparent);
-}
-.wh-pkg {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  padding: 6px 10px;
-  border: 1px solid;
-  background: var(--color-ink);
-  cursor: pointer;
-}
-.wh-pkg-a {
-  color: var(--color-acid);
-  border-color: color-mix(in srgb, var(--color-acid) 60%, transparent);
-}
-.wh-pkg-b {
-  color: var(--color-paper);
-  border-color: color-mix(in srgb, var(--color-paper) 40%, transparent);
-}
-.wh-pkg-c {
-  color: var(--color-dim);
-  border-color: color-mix(in srgb, var(--color-paper) 20%, transparent);
-}
-.wh-pkg.is-selected {
-  background: var(--color-acid);
-  color: var(--color-ink);
-  border-color: var(--color-acid);
-  box-shadow: 0 0 14px color-mix(in srgb, var(--color-acid) 45%, transparent);
-}
-.wh-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 6px;
-}
-.wh-slot {
-  aspect-ratio: 5 / 3;
-  border: 1px solid color-mix(in srgb, var(--color-paper) 14%, transparent);
-  background: color-mix(in srgb, var(--color-ink-3) 70%, transparent);
-  display: flex;
-  align-items: stretch;
-  justify-content: stretch;
-  padding: 0;
-  cursor: pointer;
-  transition: border-color 0.2s ease;
-}
-.wh-slot:hover,
-.wh-slot:focus-visible {
-  border-color: color-mix(in srgb, var(--color-acid) 55%, transparent);
-}
-.wh-slot .wh-pkg {
-  flex: 1;
-  border-color: transparent;
-  background: color-mix(in srgb, var(--color-ink) 40%, transparent);
-  cursor: default;
-}
-
 /* BEYOND: step sequencer */
 .seq-grid {
   display: grid;
@@ -599,4 +535,37 @@ html.booting {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* ---- T-104: flightdeck-only DOM twins --------------------------------
+   Elements marked data-fd-only exist for the hall interaction twins and
+   stay hidden in the classic view; html.flightdeck (cockpit.css) shows
+   them. data-fd-hide is the inverse (hidden only in the flightdeck). */
+[data-fd-only] {
+  /* the twin contract must beat component display rules (e.g. .js .toy) */
+  display: none !important;
+}
+
+/* LOG: hash button mirrors the plain hash text (flightdeck twin) */
+.log-hash-btn {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.log-hash-btn:hover,
+.log-hash-btn:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  outline: none;
+}
+
+/* LOG: panel entry highlight while its pallet is on the stage */
+.log-pick {
+  outline: 1px solid var(--color-acid);
+  outline-offset: 3px;
+  box-shadow: 0 0 22px color-mix(in srgb, var(--color-acid) 30%, transparent);
 }

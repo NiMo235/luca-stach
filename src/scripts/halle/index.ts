@@ -24,6 +24,7 @@ import { createMinimap } from './minimap';
 import { buildZones, type StackData } from './geometry/zones';
 import { createPackSim } from './sim/packages';
 import { createPackRender } from './sim/packrender';
+import { createInteract } from './interact';
 import { COL } from './layout';
 
 export type { FlightWorld } from './types';
@@ -89,6 +90,10 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
     /* T-103: package sim — conveyor parcels + quote-lane packets */
     const packSim = createPackSim(4711);
     const packR = createPackRender(scene, packSim);
+
+    /* T-104: tappable causal chains (LOG pallets, Leitstand switch,
+       scanner quota, DOCK contact loading) — DOM stays source of truth */
+    const interact = createInteract({ scene, sim, packSim, dockSignal: zones.dockSignal, canvas });
 
     /* holo hotspot markers above the zone labels (tap = fly) —
        created before the stats count so the title card stays exact */
@@ -163,6 +168,13 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
       const hits = raycaster.intersectObject(simR.agvMesh);
       return hits.length > 0 && hits[0].instanceId !== undefined ? hits[0].instanceId : -1;
     };
+    /* interaction-object raycast (T-104): AGV > interaction > hotspot */
+    const raycastInteract = (cx: number, cy: number): THREE.Object3D | null => {
+      ndc.set((cx / window.innerWidth) * 2 - 1, -(cy / window.innerHeight) * 2 + 1);
+      raycaster.setFromCamera(ndc, camera);
+      const hits = raycaster.intersectObjects(interact.hitTargets, false);
+      return hits.length > 0 ? hits[0].object : null;
+    };
     /* hotspot raycast — AGVs always win over hotspots (checked first) */
     const raycastHotspot = (cx: number, cy: number): number => {
       ndc.set((cx / window.innerWidth) * 2 - 1, -(cy / window.innerHeight) * 2 + 1);
@@ -222,6 +234,11 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
           toggleHold(id);
           return;
         }
+        /* interaction objects (DOCK pallets, Leitstand switch, …): the
+           handler runs synchronously inside the tap gesture, so real
+           actions (mailto / new tab / download) survive popup blockers */
+        const iobj = raycastInteract(e.clientX, e.clientY);
+        if (iobj && interact.handleObject(iobj)) return;
         const st = raycastHotspot(e.clientX, e.clientY);
         if (st >= 0) flyToStation(st);
       },
@@ -312,6 +329,66 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
           };
         });
       },
+      /* T-104: DOCK interaction (same code path as a pallet tap) */
+      dock(i: number): void {
+        interact.requestDock(i);
+      },
+      dockPallet(i: number): unknown {
+        const w = interact.dockPalletPos(i);
+        tmpV.set(w.x, w.y, w.z).project(camera);
+        return {
+          sx: +(((tmpV.x + 1) / 2) * window.innerWidth).toFixed(0),
+          sy: +(((1 - tmpV.y) / 2) * window.innerHeight).toFixed(0),
+        };
+      },
+      truck(): unknown {
+        const t = sim.trucks[0];
+        return { phase: t.phase, z: +t.z.toFixed(1) };
+      },
+      /* T-104: LOG pallet request + projection (shot scripts) */
+      log(i: number): void {
+        interact.requestLog(i);
+      },
+      logPallet(i: number): unknown {
+        const w = interact.logPalletPos(i);
+        tmpV.set(w.x, w.y, w.z).project(camera);
+        return {
+          sx: +(((tmpV.x + 1) / 2) * window.innerWidth).toFixed(0),
+          sy: +(((1 - tmpV.y) / 2) * window.innerHeight).toFixed(0),
+        };
+      },
+      /* T-104: Leitstand switch + model readout (shot/test scripts) */
+      leitstand(mode: string): void {
+        if (mode === 'manual' || mode === 'pipeline') interact.setLeitstand(mode);
+      },
+      leitstandSwitch(): unknown {
+        const w = interact.switchPos();
+        tmpV.set(w.x, w.y, w.z).project(camera);
+        return {
+          sx: +(((tmpV.x + 1) / 2) * window.innerWidth).toFixed(0),
+          sy: +(((1 - tmpV.y) / 2) * window.innerHeight).toFixed(0),
+        };
+      },
+      packStats(): unknown {
+        return {
+          mode: packSim.mode,
+          queueLen: +packSim.queueLen.toFixed(2),
+          servedTotal: +packSim.servedTotal.toFixed(2),
+          avgT: +packSim.avgT.toFixed(2),
+        };
+      },
+      /* T-104: Prüfstraße error quota + counters (shot/test scripts) */
+      errq(): number {
+        return interact.cycleErrQuota();
+      },
+      errqStats(): unknown {
+        return {
+          quota: packSim.errQuota,
+          checked: packSim.checked,
+          diverted: packSim.diverted,
+          siding: packSim.sidingCount,
+        };
+      },
     };
 
     /* ---- telemetry under the title card (model values, tagged) ---- */
@@ -346,6 +423,7 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
         simR.update(sim.alpha());
         packSim.advance(dt * simRate);
         packR.update();
+        interact.update(dt * simRate);
 
         /* scanner light curtain shimmer */
         zones.scanMat.opacity = (0.09 + 0.1 * (0.5 + 0.5 * Math.sin(t * 5.2))) * minLevel(L[2]);
@@ -417,13 +495,14 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
           const overDom =
             el instanceof Element && (!!el.closest(BLOCK_SEL) || !!el.closest(PANEL_SEL));
           const id = overDom ? -1 : raycastAgv(ptr.x, ptr.y);
-          const st = id >= 0 || overDom ? -1 : raycastHotspot(ptr.x, ptr.y);
+          const io = id >= 0 || overDom ? null : raycastInteract(ptr.x, ptr.y);
+          const st = id >= 0 || io || overDom ? -1 : raycastHotspot(ptr.x, ptr.y);
           if (id !== hoverId) {
             hoverId = id;
             simR.setHover(id);
           }
           if (st !== hoverStation) hoverStation = st;
-          const cursor = id >= 0 || st >= 0 ? 'pointer' : '';
+          const cursor = id >= 0 || io || st >= 0 ? 'pointer' : '';
           if (document.documentElement.style.cursor !== cursor) {
             document.documentElement.style.cursor = cursor;
           }

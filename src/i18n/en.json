@@ -136,6 +136,16 @@
       "paybackLabel": "payback",
       "paybackUnit": "months",
       "note": "model: 67% time saved · 250 workdays · €25k build cost · €45/h"
+    },
+    "ls": {
+      "title": "// control room — quote pipeline",
+      "model": "model",
+      "tLabel": "Ø min/quote",
+      "queueLabel": "queue",
+      "modeLabel": "mode",
+      "manual": "manual",
+      "pipeline": "pipeline",
+      "switchAria": "Toggle control room between manual and pipeline mode"
     }
   },
   "ticker": {
@@ -206,12 +216,16 @@
     "mapTitle": "FLOOR PLAN",
     "mapLabel": "Hall floor plan with zones",
     "mapToggle": "Toggle floor plan",
-    "mapFly": "Fly to {station}"
+    "mapFly": "Fly to {station}",
+    "fdManual": "MANUAL",
+    "fdPipeline": "PIPELINE",
+    "fdQueue": "QUEUE"
   },
   "log": {
     "kicker": "// build log",
     "heading": "History as a commit log.",
     "sub": "Every entry a release. Every line in production.",
+    "request": "Fetch station {hash} in the hall",
     "entries": [
       {
         "hash": "a1b2c3d",
@@ -337,15 +351,12 @@
         ]
       }
     ],
-    "wh": {
-      "title": "// mini-game — high-bay warehouse",
-      "hint": "pick a package → click a free slot",
-      "queueLabel": "inbound",
-      "slotsLabel": "slots",
-      "optimize": "optimize",
-      "reset": "reset",
-      "full": "warehouse full — optimize?",
-      "pkgLabel": "package"
+    "errq": {
+      "label": "Error rate",
+      "checked": "checked",
+      "diverted": "diverted",
+      "model": "model",
+      "aria": "Cycle the inspection line error rate"
     }
   },
   "stack": {
