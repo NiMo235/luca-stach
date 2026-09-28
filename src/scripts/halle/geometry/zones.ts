@@ -26,6 +26,8 @@ export interface ZoneHandles {
   scanMat: THREE.MeshBasicMaterial;
   /** extra zone accent lights riding a power group (no shadows) */
   lights: Array<{ light: THREE.Light; group: number }>;
+  /** TOR 1 traffic-light lenses — the DOCK interaction flips them (T-104) */
+  dockSignal: DockSignal;
 }
 
 const ACID = new THREE.Color(COL.acid);
@@ -573,8 +575,15 @@ function buildLounge(
 
 /* ============================= DOCK ================================= */
 /* Dock seals + two-lens traffic lights at the four big gates. The
-   truck from T-102 docks at TOR 1 (sim). */
-function buildDock(scene: THREE.Scene): void {
+   truck from T-102 docks at TOR 1 (sim). TOR 1's lenses get dedicated
+   materials (T-104): the DOCK interaction flips red ↔ green when a
+   contact pallet is loaded. */
+export interface DockSignal {
+  red: THREE.MeshBasicMaterial;
+  green: THREE.MeshBasicMaterial;
+}
+
+function buildDock(scene: THREE.Scene): { signal0: DockSignal } {
   const seals = new GeoBatch();
   const housings = new GeoBatch();
   for (const d of DOORS.slice(0, 4)) {
@@ -588,21 +597,32 @@ function buildDock(scene: THREE.Scene): void {
   scene.add(seals.mesh(foam, true, false));
   scene.add(housings.mesh(darkSteel, true, false));
 
-  /* lenses: green lit at the open TOR 1, red lit at the closed gates */
+  /* lenses: TOR 1 dedicated (switchable), TOR 2–4 batched: red lit */
+  const lensGeo = new THREE.CylinderGeometry(0.075, 0.075, 0.04, 10);
+  lensGeo.rotateX(Math.PI / 2);
+  const sig0: DockSignal = {
+    red: new THREE.MeshBasicMaterial({ color: 0xff3524 }), // idle: red
+    green: new THREE.MeshBasicMaterial({ color: 0x1a2a12 }), // green off
+  };
+  const l0x = DOORS[0].x + DOORS[0].w / 2 + 0.62;
+  const l0z = HALL.Z0 + 0.24;
+  const r0 = new THREE.Mesh(lensGeo, sig0.red);
+  r0.position.set(l0x, 3.24, l0z);
+  const g0 = new THREE.Mesh(lensGeo, sig0.green);
+  g0.position.set(l0x, 2.98, l0z);
+  scene.add(r0, g0);
+
   const redOn = new GeoBatch();
-  const redOff = new GeoBatch();
-  const greenOn = new GeoBatch();
   const greenOff = new GeoBatch();
-  DOORS.slice(0, 4).forEach((d, i) => {
+  DOORS.slice(1, 4).forEach((d) => {
     const lx = d.x + d.w / 2 + 0.62;
     const lz = HALL.Z0 + 0.24;
-    (i === 0 ? redOff : redOn).cyl(0.075, 0.075, 0.04, 10, lx, 3.24, lz, Math.PI / 2);
-    (i === 0 ? greenOn : greenOff).cyl(0.075, 0.075, 0.04, 10, lx, 2.98, lz, Math.PI / 2);
+    redOn.cyl(0.075, 0.075, 0.04, 10, lx, 3.24, lz, Math.PI / 2);
+    greenOff.cyl(0.075, 0.075, 0.04, 10, lx, 2.98, lz, Math.PI / 2);
   });
   scene.add(redOn.mesh(new THREE.MeshBasicMaterial({ color: 0xff3524 }), false, false));
-  scene.add(redOff.mesh(new THREE.MeshBasicMaterial({ color: 0x3a1512 }), false, false));
-  scene.add(greenOn.mesh(new THREE.MeshBasicMaterial({ color: COL.acid }), false, false));
   scene.add(greenOff.mesh(new THREE.MeshBasicMaterial({ color: 0x1a2a12 }), false, false));
+  return { signal0: sig0 };
 }
 
 /* ============================= BOOT ================================= */
@@ -667,7 +687,7 @@ export function buildZones(scene: THREE.Scene, stackData: StackData | null): Zon
   buildCage(scene, powerMats);
   buildStack(scene, stackData, powerMats);
   buildLounge(scene, powerMats, lights);
-  buildDock(scene);
+  const { signal0 } = buildDock(scene);
   buildGallery(scene, powerMats);
 
   /* cool accent light over the STACK mezzanine shelves (no shadow) */
@@ -676,5 +696,5 @@ export function buildZones(scene: THREE.Scene, stackData: StackData | null): Zon
   scene.add(mezzLight);
   lights.push({ light: mezzLight, group: 2 });
 
-  return { powerMats, scanMat, lights };
+  return { powerMats, scanMat, lights, dockSignal: signal0 };
 }
