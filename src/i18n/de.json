@@ -336,17 +336,7 @@
           "Automotive"
         ]
       }
-    ],
-    "wh": {
-      "title": "// mini-game — hochregal",
-      "hint": "paket wählen → freien slot klicken",
-      "queueLabel": "eingang",
-      "slotsLabel": "slots",
-      "optimize": "optimize",
-      "reset": "reset",
-      "full": "warehouse full — optimize?",
-      "pkgLabel": "Paket"
-    }
+    ]
   },
   "stack": {
     "kicker": "// stack & methods",

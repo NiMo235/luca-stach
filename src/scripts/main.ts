@@ -4,7 +4,6 @@ import { initScrambleEffects } from './scramble';
 import { initMicro } from './micro';
 import { initTerminal } from './terminal';
 import { initRoi } from './roi';
-import { initWarehouse } from './warehouse';
 import { initSequencer } from './sequencer';
 
 const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -388,8 +387,7 @@ setupTerminalEasterEgg();
 initScrambleEffects(prefersReducedMotion);
 initMicro();
 
-/* station toys: interactive terminal, ROI model, warehouse game, sequencer */
+/* station toys: interactive terminal, ROI model, sequencer */
 initTerminal(prefersReducedMotion);
 initRoi(prefersReducedMotion);
-initWarehouse(prefersReducedMotion);
 initSequencer();
