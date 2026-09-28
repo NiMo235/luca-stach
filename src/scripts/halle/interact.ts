@@ -110,7 +110,7 @@ export interface Interact {
 }
 
 export function createInteract(ctx: InteractCtx): Interact {
-  const { scene, sim, dockSignal, canvas } = ctx;
+  const { scene, sim, packSim, dockSignal, canvas } = ctx;
   const hitTargets: THREE.Object3D[] = [];
   const handlers = new Map<THREE.Object3D, () => void>();
   let clock = 0;
