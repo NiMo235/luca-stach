@@ -19,15 +19,28 @@ interface Calc {
   note: string;
 }
 
+/* T-104: Leitstand DOM twin (flightdeck only) */
+interface Ls {
+  title: string;
+  model: string;
+  tLabel: string;
+  queueLabel: string;
+  modeLabel: string;
+  manual: string;
+  pipeline: string;
+  switchAria: string;
+}
+
 interface Props {
   kicker: string;
   heading: string;
   sub: string;
   stats: Stat[];
   calc: Calc;
+  ls: Ls;
 }
 
-const { kicker, heading, sub, stats, calc } = Astro.props;
+const { kicker, heading, sub, stats, calc, ls } = Astro.props;
 ---
 
 <section id="proof" class="relative border-t border-paper/10 py-20 sm:py-28">
@@ -120,6 +133,34 @@ const { kicker, heading, sub, stats, calc } = Astro.props;
         </div>
       </div>
       <p class="mt-3 font-mono text-[10px] leading-relaxed text-faint">{calc.note}</p>
+    </div>
+
+    <!-- Leitstand twin (T-104): the ROI sliders steer this sim via
+         toy:roi; the switch mirrors the holo switch in the hall -->
+    <div class="toy mt-4 border border-paper/10 bg-ink-2 p-5" data-fd-only data-leitstand>
+      <p class="font-mono text-[10px] tracking-widest text-faint uppercase">
+        {ls.title}
+        <span class="ml-2 border border-paper/20 px-1.5 py-0.5 text-faint">{ls.model}</span>
+      </p>
+      <div class="mt-3 flex flex-wrap items-center gap-x-6 gap-y-3 font-mono text-xs text-dim">
+        <span>
+          {ls.tLabel}
+          <b class="text-acid" data-ls-t>—</b>
+        </span>
+        <span>
+          {ls.queueLabel}
+          <b class="text-acid" data-ls-q>—</b>
+        </span>
+        <button
+          type="button"
+          data-ls-toggle
+          aria-pressed="false"
+          aria-label={ls.switchAria}
+          class="border border-acid/50 px-3 py-1.5 text-[11px] tracking-wider text-acid uppercase transition-colors hover:bg-acid hover:text-ink"
+        >
+          {ls.modeLabel}: <span data-ls-mode>{ls.manual}</span>
+        </button>
+      </div>
     </div>
   </div>
 </section>

@@ -136,6 +136,16 @@
       "paybackLabel": "payback",
       "paybackUnit": "months",
       "note": "model: 67% time saved · 250 workdays · €25k build cost · €45/h"
+    },
+    "ls": {
+      "title": "// control room — quote pipeline",
+      "model": "model",
+      "tLabel": "Ø min/quote",
+      "queueLabel": "queue",
+      "modeLabel": "mode",
+      "manual": "manual",
+      "pipeline": "pipeline",
+      "switchAria": "Toggle control room between manual and pipeline mode"
     }
   },
   "ticker": {
@@ -206,7 +216,10 @@
     "mapTitle": "FLOOR PLAN",
     "mapLabel": "Hall floor plan with zones",
     "mapToggle": "Toggle floor plan",
-    "mapFly": "Fly to {station}"
+    "mapFly": "Fly to {station}",
+    "fdManual": "MANUAL",
+    "fdPipeline": "PIPELINE",
+    "fdQueue": "QUEUE"
   },
   "log": {
     "kicker": "// build log",

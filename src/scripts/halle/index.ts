@@ -356,6 +356,26 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
           sy: +(((1 - tmpV.y) / 2) * window.innerHeight).toFixed(0),
         };
       },
+      /* T-104: Leitstand switch + model readout (shot/test scripts) */
+      leitstand(mode: string): void {
+        if (mode === 'manual' || mode === 'pipeline') interact.setLeitstand(mode);
+      },
+      leitstandSwitch(): unknown {
+        const w = interact.switchPos();
+        tmpV.set(w.x, w.y, w.z).project(camera);
+        return {
+          sx: +(((tmpV.x + 1) / 2) * window.innerWidth).toFixed(0),
+          sy: +(((1 - tmpV.y) / 2) * window.innerHeight).toFixed(0),
+        };
+      },
+      packStats(): unknown {
+        return {
+          mode: packSim.mode,
+          queueLen: +packSim.queueLen.toFixed(2),
+          servedTotal: +packSim.servedTotal.toFixed(2),
+          avgT: +packSim.avgT.toFixed(2),
+        };
+      },
     };
 
     /* ---- telemetry under the title card (model values, tagged) ---- */

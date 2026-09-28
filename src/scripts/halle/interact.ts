@@ -22,7 +22,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { Sim } from './sim/world';
 import type { PackSim } from './sim/packages';
-import { COL, DOORS, RACKS } from './layout';
+import { COL, DOORS, RACKS, LEITSTAND } from './layout';
 import type { DockSignal } from './geometry/zones';
 import { canvasTexture } from './util';
 
@@ -102,6 +102,8 @@ export interface Interact {
   dockPalletPos(i: number): { x: number; y: number; z: number };
   requestLog(i: number): void;
   logPalletPos(i: number): { x: number; y: number; z: number };
+  setLeitstand(mode: 'manual' | 'pipeline'): void;
+  switchPos(): { x: number; y: number; z: number };
 }
 
 export function createInteract(ctx: InteractCtx): Interact {
@@ -580,6 +582,150 @@ export function createInteract(ctx: InteractCtx): Interact {
   logPanel?.addEventListener('focusin', hoverIn);
   logPanel?.addEventListener('focusout', hoverOut);
 
+  /* ============================ PROOF ================================
+     Holo switch MANUELL | PIPELINE at the Leitstand console + readout
+     (Ø t/quote, QUEUE). The ROI sliders (toy:roi) steer arrival rate
+     and service time; the DOM twin in the PROOF panel mirrors it all. */
+
+  const fdWords = (() => {
+    try {
+      return JSON.parse(canvas.dataset.fd ?? '{}') as Record<string, string>;
+    } catch {
+      return {} as Record<string, string>;
+    }
+  })();
+  const W_MAN = (fdWords.manual ?? 'MANUELL').toUpperCase();
+  const W_PIPE = (fdWords.pipeline ?? 'PIPELINE').toUpperCase();
+  const W_QUEUE = (fdWords.queue ?? 'QUEUE').toUpperCase();
+
+  const switchCanvas = document.createElement('canvas');
+  switchCanvas.width = 512;
+  switchCanvas.height = 128;
+  const switchCtx = switchCanvas.getContext('2d')!;
+  const switchTex = new THREE.CanvasTexture(switchCanvas);
+  switchTex.colorSpace = THREE.SRGBColorSpace;
+
+  const drawSwitch = () => {
+    const ctx = switchCtx;
+    const W = 512;
+    const H = 128;
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = 'rgba(6,10,8,0.82)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = '#b4ff39';
+    ctx.globalAlpha = 0.85;
+    ctx.lineWidth = 4;
+    ctx.strokeRect(4, 4, W - 8, H - 8);
+    ctx.globalAlpha = 1;
+    const words = [W_MAN, W_PIPE];
+    for (let k = 0; k < 2; k++) {
+      const x0 = 10 + k * 250;
+      const active = (k === 1) === (packSim.mode === 'pipeline');
+      if (active) {
+        ctx.fillStyle = '#b4ff39';
+        ctx.fillRect(x0, 12, 236, H - 24);
+      } else {
+        ctx.strokeStyle = 'rgba(180,255,57,0.5)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x0, 12, 236, H - 24);
+      }
+      ctx.fillStyle = active ? '#0a0d0a' : '#b4ff39';
+      ctx.font = '700 34px "JetBrains Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(words[k], x0 + 118, H / 2 + 2);
+    }
+    switchTex.needsUpdate = true;
+  };
+  drawSwitch();
+
+  const switchMesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(2.6, 0.65),
+    new THREE.MeshBasicMaterial({ map: switchTex, transparent: true }),
+  );
+  switchMesh.position.set(LEITSTAND.x0 - 0.45, LEITSTAND.floorY + 1.5, 22);
+  switchMesh.rotation.y = -Math.PI / 2; // faces west, toward the PROOF camera
+  scene.add(switchMesh);
+  /* console stand under the switch */
+  const stand = new THREE.Mesh(
+    new THREE.BoxGeometry(0.24, 1.4, 2.9),
+    new THREE.MeshStandardMaterial({ color: 0x22282e, metalness: 0.8, roughness: 0.5 }),
+  );
+  stand.position.set(LEITSTAND.x0 - 0.3, LEITSTAND.floorY + 0.7, 22);
+  scene.add(stand);
+  const switchHit = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.6, 3.4), HIT_MAT);
+  switchHit.position.set(LEITSTAND.x0 - 0.45, LEITSTAND.floorY + 1.5, 22);
+  scene.add(switchHit);
+  hitTargets.push(switchHit);
+
+  /* holo readout above the switch */
+  const readCanvas = document.createElement('canvas');
+  readCanvas.width = 256;
+  readCanvas.height = 96;
+  const readCtx = readCanvas.getContext('2d')!;
+  const readTex = new THREE.CanvasTexture(readCanvas);
+  readTex.colorSpace = THREE.SRGBColorSpace;
+  let readCache = '';
+  const drawReadout = (avgT: string, queue: string) => {
+    const key = `${avgT}|${queue}`;
+    if (key === readCache) return;
+    readCache = key;
+    const ctx = readCtx;
+    ctx.clearRect(0, 0, 256, 96);
+    ctx.fillStyle = 'rgba(6,10,8,0.72)';
+    ctx.fillRect(0, 0, 256, 96);
+    ctx.strokeStyle = 'rgba(125,255,216,0.7)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(2, 2, 252, 92);
+    ctx.fillStyle = '#7dffd8';
+    ctx.font = '700 26px "JetBrains Mono", monospace';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`Ø t  ${avgT} MIN`, 14, 30);
+    ctx.fillText(`${W_QUEUE} ${queue}`, 14, 66);
+    readTex.needsUpdate = true;
+  };
+  const readout = new THREE.Sprite(
+    new THREE.SpriteMaterial({ map: readTex, transparent: true, depthWrite: false }),
+  );
+  readout.scale.set(2.3, 0.86, 1);
+  readout.position.set(LEITSTAND.x0 - 0.7, LEITSTAND.floorY + 2.5, 22);
+  scene.add(readout);
+
+  /* DOM twin (PROOF panel) */
+  const lsToggle = document.querySelector<HTMLButtonElement>('[data-ls-toggle]');
+  const lsModeEl = document.querySelector<HTMLElement>('[data-ls-mode]');
+  const lsT = document.querySelector<HTMLElement>('[data-ls-t]');
+  const lsQ = document.querySelector<HTMLElement>('[data-ls-q]');
+
+  function setLeitstand(mode: 'manual' | 'pipeline'): void {
+    packSim.setMode(mode);
+    drawSwitch();
+    if (lsToggle) lsToggle.setAttribute('aria-pressed', String(mode === 'pipeline'));
+    if (lsModeEl) lsModeEl.textContent = mode === 'pipeline' ? (fdWords.pipeline ?? 'pipeline') : (fdWords.manual ?? 'manuell');
+  }
+  const toggleLeitstand = () => setLeitstand(packSim.mode === 'pipeline' ? 'manual' : 'pipeline');
+  handlers.set(switchHit, toggleLeitstand);
+  lsToggle?.addEventListener('click', toggleLeitstand);
+
+  /* ROI sliders steer arrival rate + service time (roi.ts stays owner) */
+  window.addEventListener('toy:roi', (e) => {
+    const d = (e as CustomEvent<{ quotes?: number; minutes?: number }>).detail;
+    if (d) packSim.setRates(Number(d.quotes), Number(d.minutes));
+  });
+
+  let lsAcc = 1;
+  function updateProof(dt: number): void {
+    lsAcc += dt;
+    if (lsAcc < 0.5) return;
+    lsAcc = 0;
+    const avgT = packSim.avgT.toFixed(1);
+    const q = String(Math.floor(packSim.queueLen)).padStart(3, '0');
+    if (lsT) lsT.textContent = avgT;
+    if (lsQ) lsQ.textContent = q;
+    drawReadout(avgT, q);
+  }
+
   /* ========================== public ================================ */
 
   return {
@@ -599,6 +745,7 @@ export function createInteract(ctx: InteractCtx): Interact {
       clock += dt;
       updateDock(dt);
       updateLog(dt);
+      updateProof(dt);
     },
     requestDock,
     dockPalletPos(i) {
@@ -609,6 +756,10 @@ export function createInteract(ctx: InteractCtx): Interact {
       const lp = logPallets[i];
       const y = lp ? lp.mesh.position.y + 0.4 : 0;
       return lp ? { x: lp.mesh.position.x, y, z: lp.mesh.position.z } : { x: 0, y: 0, z: 0 };
+    },
+    setLeitstand,
+    switchPos() {
+      return { x: LEITSTAND.x0 - 0.45, y: LEITSTAND.floorY + 1.5, z: 22 };
     },
   };
 }

@@ -136,6 +136,16 @@
       "paybackLabel": "Amortisation",
       "paybackUnit": "Monate",
       "note": "modell: 67 % Zeitersparnis · 250 Arbeitstage · 25 k€ Baukosten · 45 €/h"
+    },
+    "ls": {
+      "title": "// leitstand — angebots-pipeline",
+      "model": "modell",
+      "tLabel": "Ø min/angebot",
+      "queueLabel": "queue",
+      "modeLabel": "modus",
+      "manual": "manuell",
+      "pipeline": "pipeline",
+      "switchAria": "Leitstand-Modus zwischen manuell und Pipeline umschalten"
     }
   },
   "ticker": {
@@ -206,7 +216,10 @@
     "mapTitle": "GRUNDRISS",
     "mapLabel": "Hallen-Grundriss mit Zonen",
     "mapToggle": "Grundriss ein-/ausklappen",
-    "mapFly": "Flug zu {station}"
+    "mapFly": "Flug zu {station}",
+    "fdManual": "MANUELL",
+    "fdPipeline": "PIPELINE",
+    "fdQueue": "QUEUE"
   },
   "log": {
     "kicker": "// build log",

@@ -77,9 +77,20 @@ function loopPos(s: number, out: { x: number; z: number; ry: number }): void {
 }
 
 /* ---- quote lanes ---------------------------------------------------- */
+/* T-104: the Leitstand is a real (tiny) queueing model. The ROI sliders
+   (toy:roi) set the arrival rate (quotes/day) and the service time
+   (min/quote, manual). The holo switch picks the mode: PIPELINE serves
+   3× faster (−67 % Laufzeit, per the thesis measurement). Deterministic,
+   continuous flow — the headless test (check-halle-sim) drives it. */
 
 export const QUOTE_COUNT = 12; // 6 per lane
-const QUOTE_SPEEDS = [1.0, 3.0]; // manual / pipeline
+const QUOTE_SPEED_MAN = 1.0; // m/s on the bands in manual mode
+const QUOTE_SPEED_PIPE = 3.0; // 3× in pipeline mode
+const ARR_K = 0.05; // arrivals per sim-second = quotesPerDay * ARR_K
+const SRV_K = 9.0; // service rate per sim-second = SRV_K / minutes
+export const PIPE_FACTOR = 3;
+
+export type LeitstandMode = 'manual' | 'pipeline';
 
 export interface QuotePack {
   x: number;
@@ -93,6 +104,16 @@ export interface PackSim {
   quote: QuotePack[];
   /** rejected parcels currently parked on the siding (visible proof) */
   sidingCount: number;
+  /* Leitstand model (T-104) */
+  readonly mode: LeitstandMode;
+  /** request backlog (model, may be fractional; display floors it) */
+  readonly queueLen: number;
+  /** total served requests since init (model) */
+  readonly servedTotal: number;
+  /** Ø minutes per quote in the current mode (model) */
+  readonly avgT: number;
+  setMode(m: LeitstandMode): void;
+  setRates(quotesPerDay: number, minutes: number): void;
   advance(dt: number): void;
 }
 
@@ -121,6 +142,12 @@ export function createPackSim(seed = 4711): PackSim {
 
   let baseS = 0;
   let sidingCount = 0;
+  /* Leitstand model state (T-104) */
+  let mode: LeitstandMode = 'manual';
+  let quotesPerDay = 10;
+  let minutes = 25;
+  let queueLen = 0;
+  let servedTotal = 0;
   const tmp = { x: 0, z: 0, ry: 0 };
 
   return {
@@ -128,6 +155,25 @@ export function createPackSim(seed = 4711): PackSim {
     quote,
     get sidingCount() {
       return sidingCount;
+    },
+    get mode() {
+      return mode;
+    },
+    get queueLen() {
+      return queueLen;
+    },
+    get servedTotal() {
+      return servedTotal;
+    },
+    get avgT() {
+      return minutes / (mode === 'pipeline' ? PIPE_FACTOR : 1);
+    },
+    setMode(m) {
+      mode = m;
+    },
+    setRates(q, m) {
+      if (q > 0) quotesPerDay = q;
+      if (m > 0) minutes = m;
     },
     advance(dt) {
       baseS = (baseS + BELT_SPEED * dt) % LOOP_LEN;
@@ -178,13 +224,22 @@ export function createPackSim(seed = 4711): PackSim {
       }
       sidingCount = parked;
 
-      /* quote packets: constant speed per lane, wrap around */
+      /* quote packets: mode sets the band speed; the model below decides
+         how much work actually gets through (queue builds / drains) */
+      const speed = mode === 'pipeline' ? QUOTE_SPEED_PIPE : QUOTE_SPEED_MAN;
       for (const q of quote) {
         const dir = q.lane === 0 ? 1 : -1;
-        q.x += dir * QUOTE_SPEEDS[q.lane] * dt;
+        q.x += dir * speed * dt;
         if (q.x > QLANE.x1) q.x = QLANE.x0;
         if (q.x < QLANE.x0) q.x = QLANE.x1;
       }
+
+      /* queueing model: arrivals in, service out; pipeline serves 3× */
+      queueLen += quotesPerDay * ARR_K * dt;
+      const srvRate = (SRV_K / minutes) * (mode === 'pipeline' ? PIPE_FACTOR : 1);
+      const served = Math.min(queueLen, srvRate * dt);
+      queueLen -= served;
+      servedTotal += served;
     },
   };
 }

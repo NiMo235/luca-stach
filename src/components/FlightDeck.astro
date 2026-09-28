@@ -28,6 +28,9 @@ interface Props {
     mapLabel: string;
     mapToggle: string;
     mapFly: string;
+    fdManual: string;
+    fdPipeline: string;
+    fdQueue: string;
   };
   langLabel: string;
   langHref: string;
@@ -69,7 +72,13 @@ const mapZones = [
 const stationLabel = (i: number) => hud.stations[i]?.label ?? '';
 ---
 
-<canvas id="flight-canvas" aria-hidden="true" data-stack={JSON.stringify(stackData)} data-log={JSON.stringify(logData)}></canvas>
+<canvas
+  id="flight-canvas"
+  aria-hidden="true"
+  data-stack={JSON.stringify(stackData)}
+  data-log={JSON.stringify(logData)}
+  data-fd={JSON.stringify({ manual: hud.fdManual, pipeline: hud.fdPipeline, queue: hud.fdQueue })}
+></canvas>
 <div id="flight-flash" aria-hidden="true"></div>
 
 <div id="flight-hud">

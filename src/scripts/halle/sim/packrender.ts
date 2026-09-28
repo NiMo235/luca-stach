@@ -8,8 +8,12 @@
 import * as THREE from 'three';
 import type { PackSim } from './packages';
 import { CONV_COUNT, QUOTE_COUNT } from './packages';
-import { COL } from '../layout';
+import { COL, QLANE } from '../layout';
 import { canvasTexture } from '../util';
+
+const QLANE_X1 = QLANE.x1;
+const QLANE_ZIN = QLANE.zIn;
+const QLANE_ZOUT = QLANE.zOut;
 
 const PARCEL = new THREE.Color(0xa89a7c);
 const PARCEL_RED = new THREE.Color(0xd93a24);
@@ -69,6 +73,22 @@ export function createPackRender(scene: THREE.Scene, packs: PackSim): PackRender
   quote.frustumCulled = false;
   scene.add(quote);
 
+  /* T-104: the request backlog as a visible stack at the lane entrance
+     (up to 8 shown; the model's queueLen can run higher) */
+  const QUEUE_SHOW = 8;
+  const queueMat = new THREE.MeshBasicMaterial({
+    color: new THREE.Color(0xff9a1f),
+    transparent: true,
+    opacity: 0.85,
+  });
+  const queueMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(0.44, 0.3, 0.34), queueMat, QUEUE_SHOW);
+  queueMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  queueMesh.frustumCulled = false;
+  scene.add(queueMesh);
+  const QX = QLANE_X1 - 2.2; // backlog piles up at the Leitstand entrance
+  const QZ = (QLANE_ZIN + QLANE_ZOUT) / 2;
+  let lastQueue = -1;
+
   /* static per-instance colors */
   for (let i = 0; i < QUOTE_COUNT; i++) {
     quote.setColorAt(i, packs.quote[i].lane === 0 ? QUOTE_MANUAL : QUOTE_PIPE);
@@ -117,6 +137,24 @@ export function createPackRender(scene: THREE.Scene, packs: PackSim): PackRender
         quote.setMatrixAt(i, m4);
       }
       quote.instanceMatrix.needsUpdate = true;
+
+      /* backlog stack: two columns, up to QUEUE_SHOW visible */
+      const qn = Math.min(QUEUE_SHOW, Math.floor(packs.queueLen));
+      if (qn !== lastQueue) {
+        lastQueue = qn;
+        for (let i = 0; i < QUEUE_SHOW; i++) {
+          if (i < qn) {
+            P.set(QX + (i % 2) * 0.6, 0.15 + Math.floor(i / 2) * 0.34, QZ);
+            Q.identity();
+            m4.compose(P, Q, S.set(1, 1, 1));
+          } else {
+            m4.makeScale(0, 0, 0);
+          }
+          queueMesh.setMatrixAt(i, m4);
+        }
+        S.set(1, 1, 1);
+        queueMesh.instanceMatrix.needsUpdate = true;
+      }
     },
   };
 }
