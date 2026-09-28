@@ -256,13 +256,26 @@ export interface ShellPower {
   emergMat: THREE.MeshBasicMaterial;
 }
 
-export function buildShell(
-  scene: THREE.Scene,
-  maxAniso: number,
-): { parts: number; power: ShellPower } {
+export interface Shell {
+  parts: number;
+  power: ShellPower;
+  /** roof skin + skylights + trusses + cable trays — the DACH layer (T-105) */
+  roof: THREE.Group;
+  /** skylight glass — the shift presets recolor it (T-105) */
+  skyMat: THREE.MeshBasicMaterial;
+}
+
+export function buildShell(scene: THREE.Scene, maxAniso: number): Shell {
   let parts = 0;
   const add = (o: THREE.Object3D) => {
     scene.add(o);
+    parts++;
+  };
+  /* roof parts live in a dedicated group (layer toggle), still counted */
+  const roof = new THREE.Group();
+  scene.add(roof);
+  const addRoof = (o: THREE.Object3D) => {
+    roof.add(o);
     parts++;
   };
 
@@ -325,7 +338,7 @@ export function buildShell(
   for (const [z0, z1] of roofSpans) {
     roofs.box(HALL.L, 0.25, z1 - z0, 0, H + 0.12, (z0 + z1) / 2);
   }
-  add(roofs.mesh(roofMat, true, false));
+  addRoof(roofs.mesh(roofMat, true, false));
 
   /* skylight glass: faint cold glow from the night sky */
   const skyMat = new THREE.MeshBasicMaterial({ color: 0x121e30 });
@@ -337,7 +350,7 @@ export function buildShell(
     skyBatch.box(HALL.L, 0.5, 0.12, 0, H + 0.25, z + 1.36);
   }
   const skyGlass = skyBatch.mesh(skyMat, false, false);
-  add(skyGlass);
+  addRoof(skyGlass);
 
   /* ---- trusses spanning z every 10 m + purlins along x ---- */
   const trussMat = new THREE.MeshStandardMaterial({
@@ -359,7 +372,7 @@ export function buildShell(
   for (const z of [-24, -12, -6, 6, 12, 24]) {
     trusses.box(HALL.L - 4, 0.16, 0.16, 0, 13.28, z); // purlins
   }
-  add(trusses.mesh(trussMat, true, false));
+  addRoof(trusses.mesh(trussMat, true, false));
 
   /* ---- cable trays under the roof ---- */
   const trayMat = new THREE.MeshStandardMaterial({
@@ -373,9 +386,13 @@ export function buildShell(
     trays.box(112, 0.05, 0.06, 0, 12.55, z + 0.18);
     for (let x = -54; x <= 54; x += 1.6) trays.box(0.06, 0.04, 0.42, x, 12.52, z);
   }
-  trays.box(0.06, 9.2, 0.06, 47, 7.9, 8); // drop down to the Leitstand zone
-  trays.box(24, 0.05, 0.06, 47, 12.55, 8.18);
-  add(trays.mesh(trayMat, false, false));
+  addRoof(trays.mesh(trayMat, false, false));
+  /* the drop down to the Leitstand stays when the roof layer is off —
+     it feeds the control room, not the roof */
+  const trayDrop = new GeoBatch();
+  trayDrop.box(0.06, 9.2, 0.06, 47, 7.9, 8);
+  trayDrop.box(24, 0.05, 0.06, 47, 12.55, 8.18);
+  add(trayDrop.mesh(trayMat, false, false));
 
   /* ---- dock doors ---- */
   const doorMat = new THREE.MeshStandardMaterial({
@@ -542,5 +559,5 @@ export function buildShell(
   spillFar.position.set(t1.x, 2.55, HALL.Z0 - 3);
   add(spillFar);
 
-  return { parts, power: { redMat, greenMat, yardHeadMat: headMat, emergMat } };
+  return { parts, power: { redMat, greenMat, yardHeadMat: headMat, emergMat }, roof, skyMat };
 }

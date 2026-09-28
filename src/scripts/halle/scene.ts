@@ -13,6 +13,8 @@ export interface Stage {
   camera: THREE.PerspectiveCamera;
   hemi: THREE.HemisphereLight;
   moon: THREE.DirectionalLight;
+  readonly dpr: number;
+  setDpr(d: number): void;
   dispose(): void;
 }
 
@@ -60,12 +62,17 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
   moon.shadow.camera.top = 65;
   moon.shadow.camera.bottom = -65;
   moon.shadow.camera.near = 20;
-  moon.shadow.camera.far = 130;
+  /* T-105: shift presets move the key light low over the corners
+     (morning sun, late sun) — the far plane must reach across the
+     diagonal of the hall from there */
+  moon.shadow.camera.far = 220;
   moon.shadow.bias = -0.0004;
   moon.shadow.normalBias = 0.03;
   scene.add(moon, moon.target);
 
-  const dpr = Math.min(window.devicePixelRatio || 1, 1.75);
+  /* T-106: dpr is the main quality lever — index.ts steps it down on
+     slow GPUs (adaptive quality), resize() re-applies it */
+  let dpr = Math.min(window.devicePixelRatio || 1, 1.75);
   const resize = () => {
     renderer.setPixelRatio(dpr);
     renderer.setSize(window.innerWidth, window.innerHeight, false);
@@ -81,6 +88,13 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
     camera,
     hemi,
     moon,
+    get dpr() {
+      return dpr;
+    },
+    setDpr(d: number) {
+      dpr = Math.min(d, window.devicePixelRatio || 1);
+      resize();
+    },
     dispose() {
       window.removeEventListener('resize', resize);
     },

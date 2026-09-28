@@ -78,14 +78,14 @@ export function createHotspots(scene: THREE.Scene, labelSprites: THREE.Sprite[])
         P.set(h.x, h.y + DIAMOND_Y_OFF + Math.sin(t * 0.9 + i * 1.3) * 0.18, h.z);
         Q.setFromAxisAngle(Y, t * 0.7 + i * 0.9);
         const dist = P.distanceTo(camPos);
-        /* near-field scale-down (same reference distance as the labels) */
-        const dScale = THREE.MathUtils.clamp(dist / 22, 0.35, 1.1);
+        /* near-field scale-down (T-105: matches the label recipe —
+           smaller with distance, hidden below ~9 m for foreign stations)
+           so a fly-by or a neighbouring station never fills the frame
+           with a diamond that is not tappable context; the DOCKED
+           station stays visible but strongly dimmed + small */
+        const dScale = THREE.MathUtils.clamp(dist / 40, 0.18, 0.55);
         const docked = i === activeStation;
-        /* non-docked markers fade out in the near field so a fly-by or a
-           neighbouring station never fills the frame with a diamond that
-           is not tappable context; the DOCKED station stays visible but
-           strongly dimmed + small (feedback round 1) */
-        const near = docked ? 1 : THREE.MathUtils.smoothstep(dist, 6, 12);
+        const near = docked ? 1 : THREE.MathUtils.smoothstep(dist, 3.5, 9);
         const sc = dScale * (docked ? 0.5 : near) * (i === hoverStation ? 1.45 : 1);
         S.set(sc, sc, sc);
         m4.compose(P, Q, S);

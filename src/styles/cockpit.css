@@ -559,6 +559,130 @@
   box-shadow: 0 0 14px color-mix(in srgb, var(--color-acid) 30%, transparent);
 }
 
+/* ---- shift presets + layer menu (T-105) ------------------------------
+   Same row as the minimap toggle and AUDIO (bottom-right, below the
+   panels). The layer menu floats upward like the open minimap. */
+#halle-desat,
+.halle-shift,
+.halle-layers {
+  display: none;
+}
+.flightdeck #halle-desat {
+  display: block;
+  position: fixed;
+  inset: 0;
+  z-index: 2; /* above the canvas, below panels + HUD */
+  pointer-events: none;
+  opacity: 0;
+  backdrop-filter: saturate(0.2) brightness(0.8);
+  -webkit-backdrop-filter: saturate(0.2) brightness(0.8);
+  transition: opacity 0.4s ease;
+}
+.flightdeck #halle-desat.is-on {
+  opacity: 1;
+}
+.flightdeck .halle-shift {
+  display: flex;
+  pointer-events: auto;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.flightdeck .halle-layers {
+  display: block;
+  position: relative;
+  z-index: 20;
+  pointer-events: auto;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.halle-shift button,
+.halle-layers-toggle,
+.halle-layers-body button {
+  background: color-mix(in srgb, var(--color-ink) 78%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-paper) 20%, transparent);
+  padding: 4px 9px;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: var(--color-paper);
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    color 0.2s ease,
+    background-color 0.2s ease;
+}
+.halle-shift button + button {
+  border-left: 0;
+}
+.halle-shift button:hover,
+.halle-layers-toggle:hover,
+.halle-layers-body button:hover {
+  border-color: var(--color-acid);
+  color: var(--color-acid);
+}
+.halle-shift button[aria-pressed='true'],
+.halle-layers-body button[aria-pressed='true'] {
+  color: var(--color-ink);
+  background: var(--color-acid);
+  border-color: var(--color-acid);
+}
+.halle-layers-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+/* reuse the minimap chevron (▸ collapsed / × open) */
+.halle-layers[data-collapsed='true'] .halle-map-chevron {
+  width: 0;
+  height: 0;
+  border-left: 6px solid currentColor;
+  border-top: 4.5px solid transparent;
+  border-bottom: 4.5px solid transparent;
+}
+.halle-layers[data-collapsed='false'] .halle-map-chevron {
+  position: relative;
+  width: 9px;
+  height: 9px;
+}
+.halle-layers[data-collapsed='false'] .halle-map-chevron::before,
+.halle-layers[data-collapsed='false'] .halle-map-chevron::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 0;
+  width: 1.5px;
+  height: 9px;
+  background: currentColor;
+}
+.halle-layers[data-collapsed='false'] .halle-map-chevron::before {
+  transform: rotate(45deg);
+}
+.halle-layers[data-collapsed='false'] .halle-map-chevron::after {
+  transform: rotate(-45deg);
+}
+.halle-layers-body {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 160px;
+  padding: 6px;
+  border: 1px solid color-mix(in srgb, var(--color-paper) 20%, transparent);
+  background: color-mix(in srgb, var(--color-ink) 93%, transparent);
+}
+.halle-layers-body button {
+  text-align: left;
+}
+.halle-layers[data-collapsed='true'] .halle-layers-body {
+  display: none;
+}
+
 /* ---- minimap / floor plan (T-103) ------------------------------------
    T-104: the collapsed toggle lives in the audio row (bottom-right),
    left of the AUDIO button — no more overlap with the panel bottom

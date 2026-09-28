@@ -316,7 +316,13 @@ export function createInteract(ctx: InteractCtx): Interact {
   const LOG_LEVELS = [3, 2, 4, 3, 2];
   const bayZ = (b: number) => RACKS.z0 + ((RACKS.z1 - RACKS.z0) / RACKS.bays) * (b + 0.5);
   const lvlY = (l: number) => RACKS.baseY + l * RACKS.pitch;
-  const STAGE = { x: AISLE_X, y: 1.55, z: 9.5 }; // eye height, in view of the LOG camera
+  /* T-105 fix (T-104 follow-up): the stage stood dead ahead of the LOG
+     camera 4 m away — the additive spot cone filled half the frame and
+     the pallet read as a giant flat block. Now the pedestal stands at
+     the EAST aisle edge, ~8.6 m out, so the pallet lands in the free
+     image area RIGHT of the LOG panel at a natural size. */
+  const STAGE = { x: -48.15, z: 5.0 };
+  const PED_TOP = 0.5; // pedestal top: the pallet rests ON it during show
   const SHUTTLE_HOME = { y: 0.85, z: 13.6 };
   const SHOW_TIME = 6;
 
@@ -370,28 +376,30 @@ export function createInteract(ctx: InteractCtx): Interact {
     logPallets.push({ mesh, mat, home: { x: FACE_X, y, z }, carried: false });
   }
 
-  /* presentation stage: pedestal + spot cone + floor pool (spot on demand) */
+  /* presentation stage: pedestal + tight spot cone + floor pool + a real
+     spot light (all on demand). The cone is narrow (r 0.95) so it reads
+     as a spot from above, not as a glowing wall in the near field. */
   const stage = new THREE.Group();
   const pedestal = new THREE.Mesh(
-    new THREE.BoxGeometry(1.9, 0.5, 1.6),
+    new THREE.BoxGeometry(1.9, PED_TOP, 1.6),
     new THREE.MeshStandardMaterial({ color: 0x2b3138, metalness: 0.6, roughness: 0.5 }),
   );
-  pedestal.position.set(STAGE.x, 0.25, STAGE.z);
+  pedestal.position.set(STAGE.x, PED_TOP / 2, STAGE.z);
   stage.add(pedestal);
   const spotCone = new THREE.Mesh(
-    new THREE.ConeGeometry(1.6, 4.4, 20, 1, true),
+    new THREE.ConeGeometry(0.95, 5.6, 20, 1, true),
     new THREE.MeshBasicMaterial({
       color: COL.acid,
       transparent: true,
-      opacity: 0.1,
+      opacity: 0.08,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
       side: THREE.DoubleSide,
     }),
   );
-  spotCone.position.set(STAGE.x, 4.9, STAGE.z);
+  spotCone.position.set(STAGE.x, PED_TOP + 2.85, STAGE.z);
   const spotPool = new THREE.Mesh(
-    new THREE.CircleGeometry(1.7, 24),
+    new THREE.CircleGeometry(1.35, 24),
     new THREE.MeshBasicMaterial({
       color: COL.acid,
       transparent: true,
@@ -404,7 +412,24 @@ export function createInteract(ctx: InteractCtx): Interact {
   spotPool.position.set(STAGE.x, 0.04, STAGE.z);
   spotCone.visible = spotPool.visible = false;
   stage.add(spotCone, spotPool);
+  /* the spot from above: lit only while a pallet is on the stage */
+  const stageSpot = new THREE.SpotLight(0xf4ffd2, 0, 14, 0.34, 0.65, 1.6);
+  stageSpot.position.set(STAGE.x, 8.6, STAGE.z + 0.4);
+  stageSpot.target.position.set(STAGE.x, PED_TOP, STAGE.z);
+  stage.add(stageSpot, stageSpot.target);
   scene.add(stage);
+
+  /* hash label above the staged pallet (one sprite per pallet, the
+     active one is shown during the show phase) */
+  const stageLabels: THREE.Sprite[] = [];
+  for (let i = 0; i < N_LOG; i++) {
+    const d = logData[i];
+    const s = textSprite(d ? (d.year ? `${d.hash} · ${d.year}` : d.hash) : `P-${i + 1}`, '#b4ff39', 2.2, 0.55);
+    s.position.set(STAGE.x, PED_TOP + 1.75, STAGE.z);
+    s.visible = false;
+    scene.add(s);
+    stageLabels.push(s);
+  }
 
   /* the aisle shuttle that fetches pallets (choreographed, aisle B) */
   const shuttle = new THREE.Group();
@@ -447,11 +472,13 @@ export function createInteract(ctx: InteractCtx): Interact {
   type LogPhase = 'idle' | 'fetch' | 'pull' | 'carry' | 'show' | 'store' | 'push' | 'park';
   const logSt = { phase: 'idle' as LogPhase, i: -1, pending: -1, t: 0, showT: 0, glow: -1 };
 
-  const moveZ = (tz: number, ty: number, dt: number): boolean => {
+  const moveTo = (tx: number, tz: number, ty: number, dt: number): boolean => {
     const sz = 3.0 * dt;
     const sy = 1.6 * dt;
+    const sx = 1.5 * dt;
     const dz = tz - shuttle.position.z;
     const dy = ty - shuttle.position.y;
+    const dx = tx - shuttle.position.x;
     let done = true;
     if (Math.abs(dz) > sz) {
       shuttle.position.z += Math.sign(dz) * sz;
@@ -461,6 +488,10 @@ export function createInteract(ctx: InteractCtx): Interact {
       shuttle.position.y += Math.sign(dy) * sy;
       done = false;
     } else shuttle.position.y = ty;
+    if (Math.abs(dx) > sx) {
+      shuttle.position.x += Math.sign(dx) * sx;
+      done = false;
+    } else shuttle.position.x = tx;
     return done;
   };
 
@@ -506,7 +537,7 @@ export function createInteract(ctx: InteractCtx): Interact {
     const lp = logPallets[logSt.i];
     switch (logSt.phase) {
       case 'fetch':
-        if (moveZ(lp.home.z, lp.home.y + 0.35, dt)) {
+        if (moveTo(AISLE_X, lp.home.z, lp.home.y + 0.35, dt)) {
           logSt.phase = 'pull';
           logSt.t = 0;
         }
@@ -522,26 +553,46 @@ export function createInteract(ctx: InteractCtx): Interact {
         break;
       }
       case 'carry':
-        if (moveZ(STAGE.z, STAGE.y, dt)) {
+        /* shuttle slides east under the stage, fork at pedestal height:
+           the pallet comes to rest exactly ON the pedestal */
+        if (moveTo(STAGE.x, STAGE.z, PED_TOP - 0.32, dt)) {
           logSt.phase = 'show';
           logSt.showT = 0;
+          lp.carried = false;
+          lp.mesh.position.set(STAGE.x, PED_TOP, STAGE.z);
+          lp.mesh.rotation.y = Math.PI / 2;
           spotCone.visible = spotPool.visible = true;
+          stageSpot.intensity = 170;
+          const sl = stageLabels[logSt.i];
+          if (sl) sl.visible = true;
           pickEntry(logSt.i);
         }
         break;
       case 'show':
         logSt.showT += dt;
-        spotCone.material.opacity = 0.1 + Math.sin(clock * 2.4) * 0.03;
+        spotCone.material.opacity = 0.08 + Math.sin(clock * 2.4) * 0.025;
+        /* the shuttle waits beside the stage (west, out from under the
+           pallet) so the pedestal reads clean */
+        moveTo(AISLE_X, STAGE.z, 0.85, dt);
         if (logSt.showT >= SHOW_TIME) logSt.phase = 'store';
         break;
-      case 'store':
+      case 'store': {
         spotCone.visible = spotPool.visible = false;
+        stageSpot.intensity = 0;
+        const sl = stageLabels[logSt.i];
+        if (sl) sl.visible = false;
         clearPick();
-        if (moveZ(lp.home.z, lp.home.y + 0.35, dt)) {
+        /* slide back under the pallet, pick it up, carry it home */
+        if (!lp.carried) {
+          if (moveTo(STAGE.x, STAGE.z, PED_TOP - 0.32, dt)) lp.carried = true;
+          break;
+        }
+        if (moveTo(AISLE_X, lp.home.z, lp.home.y + 0.35, dt)) {
           logSt.phase = 'push';
           logSt.t = 0;
         }
         break;
+      }
       case 'push': {
         logSt.t += dt;
         const k = Math.min(1, logSt.t / 0.7);
@@ -554,7 +605,7 @@ export function createInteract(ctx: InteractCtx): Interact {
         break;
       }
       case 'park':
-        if (moveZ(SHUTTLE_HOME.z, SHUTTLE_HOME.y, dt)) {
+        if (moveTo(AISLE_X, SHUTTLE_HOME.z, SHUTTLE_HOME.y, dt)) {
           logSt.phase = 'idle';
           logSt.i = -1;
         }
@@ -562,7 +613,7 @@ export function createInteract(ctx: InteractCtx): Interact {
     }
     /* the pallet rides on the shuttle */
     if (lp.carried) {
-      lp.mesh.position.set(AISLE_X, shuttle.position.y + 0.32, shuttle.position.z);
+      lp.mesh.position.set(shuttle.position.x, shuttle.position.y + 0.32, shuttle.position.z);
       lp.mesh.rotation.y = 0;
     }
   }
@@ -642,22 +693,28 @@ export function createInteract(ctx: InteractCtx): Interact {
   };
   drawSwitch();
 
+  /* T-105 fix (T-104 follow-up): the switch + readout hung at the
+     Leitstand west glass (z = 22), exactly behind the PROOF panel edge.
+     Moved into the open hall in front of the glass — from the PROOF
+     camera this projects to the free image area LEFT of the panel. */
+  const SWITCH_POS = { x: 37.05, y: 2.55, z: 17.2 };
   const switchMesh = new THREE.Mesh(
     new THREE.PlaneGeometry(2.6, 0.65),
     new THREE.MeshBasicMaterial({ map: switchTex, transparent: true }),
   );
-  switchMesh.position.set(LEITSTAND.x0 - 0.45, LEITSTAND.floorY + 1.5, 22);
+  switchMesh.position.set(SWITCH_POS.x, SWITCH_POS.y, SWITCH_POS.z);
   switchMesh.rotation.y = -Math.PI / 2; // faces west, toward the PROOF camera
   scene.add(switchMesh);
-  /* console stand under the switch */
+  /* free-standing console post under the switch (the hall floor is the
+     base here, not the Leitstand slab) */
   const stand = new THREE.Mesh(
-    new THREE.BoxGeometry(0.24, 1.4, 2.9),
+    new THREE.BoxGeometry(0.24, 2.2, 2.9),
     new THREE.MeshStandardMaterial({ color: 0x22282e, metalness: 0.8, roughness: 0.5 }),
   );
-  stand.position.set(LEITSTAND.x0 - 0.3, LEITSTAND.floorY + 0.7, 22);
+  stand.position.set(SWITCH_POS.x + 0.3, 1.1, SWITCH_POS.z);
   scene.add(stand);
-  const switchHit = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.6, 3.4), HIT_MAT);
-  switchHit.position.set(LEITSTAND.x0 - 0.45, LEITSTAND.floorY + 1.5, 22);
+  const switchHit = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.8, 3.4), HIT_MAT);
+  switchHit.position.set(SWITCH_POS.x, SWITCH_POS.y, SWITCH_POS.z);
   scene.add(switchHit);
   hitTargets.push(switchHit);
 
@@ -692,7 +749,7 @@ export function createInteract(ctx: InteractCtx): Interact {
     new THREE.SpriteMaterial({ map: readTex, transparent: true, depthWrite: false }),
   );
   readout.scale.set(2.3, 0.86, 1);
-  readout.position.set(LEITSTAND.x0 - 0.7, LEITSTAND.floorY + 2.5, 22);
+  readout.position.set(SWITCH_POS.x - 0.35, SWITCH_POS.y + 1.1, SWITCH_POS.z);
   scene.add(readout);
 
   /* DOM twin (PROOF panel) */
@@ -812,6 +869,9 @@ export function createInteract(ctx: InteractCtx): Interact {
   return {
     hitTargets,
     handleObject(obj) {
+      /* invisible objects (e.g. the BEYOND sequencer tag while docked
+         elsewhere) must not swallow taps */
+      if (!obj.visible) return false;
       const fn = handlers.get(obj);
       if (fn) {
         fn();
@@ -820,7 +880,7 @@ export function createInteract(ctx: InteractCtx): Interact {
       return false;
     },
     isInteractive(obj) {
-      return obj !== null && handlers.has(obj);
+      return obj !== null && obj.visible && handlers.has(obj);
     },
     update(dt) {
       clock += dt;
@@ -841,7 +901,7 @@ export function createInteract(ctx: InteractCtx): Interact {
     },
     setLeitstand,
     switchPos() {
-      return { x: LEITSTAND.x0 - 0.45, y: LEITSTAND.floorY + 1.5, z: 22 };
+      return { ...SWITCH_POS };
     },
     cycleErrQuota,
     portalPos() {

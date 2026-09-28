@@ -31,6 +31,17 @@ interface Props {
     fdManual: string;
     fdPipeline: string;
     fdQueue: string;
+    shiftLabel: string;
+    shiftMorning: string;
+    shiftLate: string;
+    shiftNight: string;
+    layersTitle: string;
+    layersLabel: string;
+    layersToggle: string;
+    layerRoof: string;
+    layerData: string;
+    layerAuto: string;
+    layerHazmat: string;
   };
   langLabel: string;
   langHref: string;
@@ -80,6 +91,7 @@ const stationLabel = (i: number) => hud.stations[i]?.label ?? '';
   data-fd={JSON.stringify({ manual: hud.fdManual, pipeline: hud.fdPipeline, queue: hud.fdQueue })}
 ></canvas>
 <div id="flight-flash" aria-hidden="true"></div>
+<div id="halle-desat" aria-hidden="true"></div>
 
 <div id="flight-hud">
   <span class="hud-corner tl" aria-hidden="true"></span>
@@ -126,6 +138,31 @@ const stationLabel = (i: number) => hud.stations[i]?.label ?? '';
   </div>
 
   <div class="hud-audio">
+    <!-- T-105: shift presets (light + operation) and layer toggles —
+         wired by src/scripts/halle/atmosphere.ts -->
+    <div class="halle-shift" role="group" aria-label={hud.shiftLabel}>
+      <button type="button" data-shift="morning" aria-pressed="false">{hud.shiftMorning}</button>
+      <button type="button" data-shift="late" aria-pressed="false">{hud.shiftLate}</button>
+      <button type="button" data-shift="night" aria-pressed="true">{hud.shiftNight}</button>
+    </div>
+    <div id="halle-layers" class="halle-layers" data-collapsed="true">
+      <button
+        type="button"
+        class="halle-layers-toggle"
+        aria-expanded="false"
+        aria-controls="halle-layers-body"
+        aria-label={hud.layersToggle}
+      >
+        <span>{hud.layersTitle}</span>
+        <span class="halle-map-chevron" aria-hidden="true"></span>
+      </button>
+      <div class="halle-layers-body" id="halle-layers-body" role="group" aria-label={hud.layersLabel}>
+        <button type="button" data-layer="roof" aria-pressed="true">{hud.layerRoof}</button>
+        <button type="button" data-layer="data" aria-pressed="true">{hud.layerData}</button>
+        <button type="button" data-layer="auto" aria-pressed="false">{hud.layerAuto}</button>
+        <button type="button" data-layer="hazmat" aria-pressed="false">{hud.layerHazmat}</button>
+      </div>
+    </div>
     <!-- T-103/T-104: minimap / floor plan — collapsed toggle lives in this
          row, left of the AUDIO button; the open plan floats upward.
          Zone groups are clickable (halle:fly); AGV dots, trucks and the
