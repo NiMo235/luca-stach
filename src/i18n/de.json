@@ -212,6 +212,7 @@
     "kicker": "// build log",
     "heading": "Verlauf als Commit-Log.",
     "sub": "Jeder Eintrag ein Release. Jede Zeile produktiv.",
+    "request": "Station {hash} in der Halle anfahren",
     "entries": [
       {
         "hash": "a1b2c3d",

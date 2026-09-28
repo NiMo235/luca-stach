@@ -92,7 +92,7 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
 
     /* T-104: tappable causal chains (LOG pallets, Leitstand switch,
        scanner quota, DOCK contact loading) — DOM stays source of truth */
-    const interact = createInteract({ scene, sim, packSim, dockSignal: zones.dockSignal });
+    const interact = createInteract({ scene, sim, packSim, dockSignal: zones.dockSignal, canvas });
 
     /* holo hotspot markers above the zone labels (tap = fly) —
        created before the stats count so the title card stays exact */
@@ -343,6 +343,18 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
       truck(): unknown {
         const t = sim.trucks[0];
         return { phase: t.phase, z: +t.z.toFixed(1) };
+      },
+      /* T-104: LOG pallet request + projection (shot scripts) */
+      log(i: number): void {
+        interact.requestLog(i);
+      },
+      logPallet(i: number): unknown {
+        const w = interact.logPalletPos(i);
+        tmpV.set(w.x, w.y, w.z).project(camera);
+        return {
+          sx: +(((tmpV.x + 1) / 2) * window.innerWidth).toFixed(0),
+          sy: +(((1 - tmpV.y) / 2) * window.innerHeight).toFixed(0),
+        };
       },
     };
 

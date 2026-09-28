@@ -35,9 +35,11 @@ interface Props {
     tools: Array<{ name: string; level: number }>;
     methods: Array<{ name: string; level: number }>;
   };
+  /* T-104: LOG pallets in the hall — hash + year are language-neutral */
+  logData: Array<{ hash: string; year: string }>;
 }
 
-const { hud, langLabel, langHref, stackData } = Astro.props;
+const { hud, langLabel, langHref, stackData, logData } = Astro.props;
 const langUrl = `${import.meta.env.BASE_URL}${langHref.replace(/^\//, '')}`;
 
 /* T-103 minimap geometry — mirrors src/scripts/halle/layout.ts
@@ -67,7 +69,7 @@ const mapZones = [
 const stationLabel = (i: number) => hud.stations[i]?.label ?? '';
 ---
 
-<canvas id="flight-canvas" aria-hidden="true" data-stack={JSON.stringify(stackData)}></canvas>
+<canvas id="flight-canvas" aria-hidden="true" data-stack={JSON.stringify(stackData)} data-log={JSON.stringify(logData)}></canvas>
 <div id="flight-flash" aria-hidden="true"></div>
 
 <div id="flight-hud">

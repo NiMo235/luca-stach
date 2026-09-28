@@ -22,7 +22,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { Sim } from './sim/world';
 import type { PackSim } from './sim/packages';
-import { COL, DOORS } from './layout';
+import { COL, DOORS, RACKS } from './layout';
 import type { DockSignal } from './geometry/zones';
 import { canvasTexture } from './util';
 
@@ -43,7 +43,16 @@ function palletGeometry(): THREE.BufferGeometry {
 }
 
 function labelPlane(text: string, w: number, h: number, color = '#b4ff39'): THREE.Mesh {
-  const tex = canvasTexture(256, 64, (ctx, W, H) => {
+  const tex = labelTexture(text, color);
+  const m = new THREE.Mesh(
+    new THREE.PlaneGeometry(w, h),
+    new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide }),
+  );
+  return m;
+}
+
+function labelTexture(text: string, color: string): THREE.CanvasTexture {
+  return canvasTexture(256, 64, (ctx, W, H) => {
     ctx.clearRect(0, 0, W, H);
     ctx.fillStyle = 'rgba(6,10,8,0.78)';
     ctx.fillRect(0, 0, W, H);
@@ -58,11 +67,17 @@ function labelPlane(text: string, w: number, h: number, color = '#b4ff39'): THRE
     ctx.textBaseline = 'middle';
     ctx.fillText(text, W / 2, H / 2 + 1);
   });
-  const m = new THREE.Mesh(
-    new THREE.PlaneGeometry(w, h),
-    new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide }),
-  );
-  return m;
+}
+
+function textSprite(text: string, color: string, w = 1.9, h = 0.48): THREE.Sprite {
+  const mat = new THREE.SpriteMaterial({
+    map: labelTexture(text, color),
+    transparent: true,
+    depthWrite: false,
+  });
+  const s = new THREE.Sprite(mat);
+  s.scale.set(w, h, 1);
+  return s;
 }
 
 export interface InteractCtx {
@@ -70,6 +85,8 @@ export interface InteractCtx {
   sim: Sim;
   packSim: PackSim;
   dockSignal: DockSignal;
+  /** carries the data attributes (data-log) with language-neutral content */
+  canvas: HTMLCanvasElement;
 }
 
 export interface Interact {
@@ -83,12 +100,15 @@ export interface Interact {
   /* debug/test hooks */
   requestDock(i: number): void;
   dockPalletPos(i: number): { x: number; y: number; z: number };
+  requestLog(i: number): void;
+  logPalletPos(i: number): { x: number; y: number; z: number };
 }
 
 export function createInteract(ctx: InteractCtx): Interact {
-  const { scene, sim, dockSignal } = ctx;
+  const { scene, sim, dockSignal, canvas } = ctx;
   const hitTargets: THREE.Object3D[] = [];
   const handlers = new Map<THREE.Object3D, () => void>();
+  let clock = 0;
 
   /* ============================ DOCK =================================
      three contact pallets before TOR 1; tap fires the REAL action
@@ -266,6 +286,300 @@ export function createInteract(ctx: InteractCtx): Interact {
     }
   }
 
+  /* ============================ LOG ==================================
+     five highlighted pallets in high-bay aisle B, one per log entry
+     (label: commit hash + year — language-neutral, from data-log).
+     Tap: the aisle shuttle fetches the pallet onto the presentation
+     stage at eye height (spot on), the matching LOG panel entry gets
+     an acid frame and is scrolled into view INSIDE the panel (manual
+     scrollTop — window.scrollY steers the camera and never moves). */
+
+  interface LogDatum {
+    hash: string;
+    year: string;
+  }
+  let logData: LogDatum[] = [];
+  try {
+    logData = JSON.parse(canvas.dataset.log ?? '[]') as LogDatum[];
+  } catch {
+    logData = [];
+  }
+
+  const AISLE_X = RACKS.aislesX[1]; // aisle B — the LOG camera lives here
+  const FACE_X = RACKS.rowsX[2] - RACKS.depth / 2 - 0.35; // east face, proud
+  const LOG_BAYS = [0, 2, 4, 6, 8];
+  const LOG_LEVELS = [3, 2, 4, 3, 2];
+  const bayZ = (b: number) => RACKS.z0 + ((RACKS.z1 - RACKS.z0) / RACKS.bays) * (b + 0.5);
+  const lvlY = (l: number) => RACKS.baseY + l * RACKS.pitch;
+  const STAGE = { x: AISLE_X, y: 1.55, z: 9.5 }; // eye height, in view of the LOG camera
+  const SHUTTLE_HOME = { y: 0.85, z: 13.6 };
+  const SHOW_TIME = 6;
+
+  interface LogPallet {
+    mesh: THREE.Mesh;
+    mat: THREE.MeshStandardMaterial;
+    home: { x: number; y: number; z: number };
+    carried: boolean;
+  }
+  const logPallets: LogPallet[] = [];
+  const N_LOG = Math.min(5, logData.length || 5);
+  for (let i = 0; i < N_LOG; i++) {
+    const z = bayZ(LOG_BAYS[i % LOG_BAYS.length]);
+    const y = lvlY(LOG_LEVELS[i % LOG_LEVELS.length]);
+    const mat = new THREE.MeshStandardMaterial({
+      color: 0x8a6f4c,
+      metalness: 0.05,
+      roughness: 0.8,
+      emissive: new THREE.Color(COL.acid),
+      emissiveIntensity: 0.3, // highlighted stock
+    });
+    const mesh = new THREE.Mesh(palletGeo, mat);
+    mesh.position.set(FACE_X, y, z);
+    mesh.rotation.y = Math.PI / 2;
+    scene.add(mesh);
+    /* acid frame on the rack face */
+    const frame = new THREE.Mesh(
+      new THREE.PlaneGeometry(1.42, 0.92),
+      new THREE.MeshBasicMaterial({
+        color: COL.acid,
+        transparent: true,
+        opacity: 0.28,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+      }),
+    );
+    frame.rotation.y = -Math.PI / 2;
+    frame.position.set(FACE_X - 0.55, y + 0.38, z);
+    scene.add(frame);
+    /* hash · year label (sprite — always readable down the aisle) */
+    const d = logData[i];
+    const label = textSprite(d ? (d.year ? `${d.hash} · ${d.year}` : d.hash) : `P-${i + 1}`, '#b4ff39');
+    label.position.set(FACE_X - 0.8, y + 1.02, z);
+    scene.add(label);
+    const hit = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.3, 1.6), HIT_MAT);
+    hit.position.set(FACE_X - 0.5, y + 0.4, z);
+    scene.add(hit);
+    hitTargets.push(hit);
+    handlers.set(hit, () => requestLog(i));
+    logPallets.push({ mesh, mat, home: { x: FACE_X, y, z }, carried: false });
+  }
+
+  /* presentation stage: pedestal + spot cone + floor pool (spot on demand) */
+  const stage = new THREE.Group();
+  const pedestal = new THREE.Mesh(
+    new THREE.BoxGeometry(1.9, 0.5, 1.6),
+    new THREE.MeshStandardMaterial({ color: 0x2b3138, metalness: 0.6, roughness: 0.5 }),
+  );
+  pedestal.position.set(STAGE.x, 0.25, STAGE.z);
+  stage.add(pedestal);
+  const spotCone = new THREE.Mesh(
+    new THREE.ConeGeometry(1.6, 4.4, 20, 1, true),
+    new THREE.MeshBasicMaterial({
+      color: COL.acid,
+      transparent: true,
+      opacity: 0.1,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    }),
+  );
+  spotCone.position.set(STAGE.x, 4.9, STAGE.z);
+  const spotPool = new THREE.Mesh(
+    new THREE.CircleGeometry(1.7, 24),
+    new THREE.MeshBasicMaterial({
+      color: COL.acid,
+      transparent: true,
+      opacity: 0.14,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    }),
+  );
+  spotPool.rotation.x = -Math.PI / 2;
+  spotPool.position.set(STAGE.x, 0.04, STAGE.z);
+  spotCone.visible = spotPool.visible = false;
+  stage.add(spotCone, spotPool);
+  scene.add(stage);
+
+  /* the aisle shuttle that fetches pallets (choreographed, aisle B) */
+  const shuttle = new THREE.Group();
+  const shuttleBody = new THREE.Mesh(
+    new THREE.BoxGeometry(1.05, 0.3, 1.5),
+    new THREE.MeshStandardMaterial({
+      color: 0x2f5a52,
+      metalness: 0.6,
+      roughness: 0.4,
+      emissive: new THREE.Color(COL.cyan),
+      emissiveIntensity: 1.1,
+    }),
+  );
+  shuttle.add(shuttleBody);
+  shuttle.position.set(AISLE_X, SHUTTLE_HOME.y, SHUTTLE_HOME.z);
+  scene.add(shuttle);
+
+  /* ---- LOG panel twin (DOM) ---- */
+  const logPanel = document.getElementById('log');
+  const logScroller = logPanel?.querySelector<HTMLElement>(':scope > div:not([aria-hidden="true"])');
+  let pickedEl: HTMLElement | null = null;
+  const clearPick = () => {
+    pickedEl?.classList.remove('log-pick');
+    pickedEl = null;
+  };
+  const pickEntry = (i: number) => {
+    clearPick();
+    pickedEl = logPanel?.querySelector<HTMLElement>(`[data-log-entry="${i}"]`) ?? null;
+    if (!pickedEl) return;
+    pickedEl.classList.add('log-pick');
+    /* scroll the PANEL, never the page: window.scrollY is the camera */
+    if (logScroller) {
+      const r = pickedEl.getBoundingClientRect();
+      const s = logScroller.getBoundingClientRect();
+      const delta = r.top - s.top - (logScroller.clientHeight - r.height) / 2;
+      logScroller.scrollTo({ top: logScroller.scrollTop + delta, behavior: 'smooth' });
+    }
+  };
+
+  type LogPhase = 'idle' | 'fetch' | 'pull' | 'carry' | 'show' | 'store' | 'push' | 'park';
+  const logSt = { phase: 'idle' as LogPhase, i: -1, pending: -1, t: 0, showT: 0, glow: -1 };
+
+  const moveZ = (tz: number, ty: number, dt: number): boolean => {
+    const sz = 3.0 * dt;
+    const sy = 1.6 * dt;
+    const dz = tz - shuttle.position.z;
+    const dy = ty - shuttle.position.y;
+    let done = true;
+    if (Math.abs(dz) > sz) {
+      shuttle.position.z += Math.sign(dz) * sz;
+      done = false;
+    } else shuttle.position.z = tz;
+    if (Math.abs(dy) > sy) {
+      shuttle.position.y += Math.sign(dy) * sy;
+      done = false;
+    } else shuttle.position.y = ty;
+    return done;
+  };
+
+  function requestLog(i: number): void {
+    if (i < 0 || i >= logPallets.length) return;
+    if (logSt.phase === 'idle') {
+      logSt.phase = 'fetch';
+      logSt.i = i;
+      logSt.t = 0;
+      return;
+    }
+    if (logSt.i === i && (logSt.phase === 'show' || logSt.phase === 'carry')) {
+      logSt.showT = 0; // re-tap restarts the spotlight window
+      return;
+    }
+    logSt.pending = i;
+    if (logSt.phase === 'fetch') {
+      /* no pallet on the fork yet — retarget directly */
+      logSt.i = i;
+      logSt.pending = -1;
+    } else if (logSt.phase === 'show') {
+      logSt.phase = 'store'; // next selection re-stores the current pallet
+    }
+  }
+
+  function updateLog(dt: number): void {
+    /* hover glow (DOM twin: hover/focus on a log entry) + shown pulse */
+    for (let k = 0; k < logPallets.length; k++) {
+      const lp = logPallets[k];
+      const shown = logSt.i === k && (logSt.phase !== 'idle' && logSt.phase !== 'park');
+      const hov = logSt.glow === k;
+      lp.mat.emissiveIntensity =
+        (shown ? 1.15 : hov ? 0.95 : 0.3) + (hov || shown ? Math.sin(clock * 5) * 0.15 : 0);
+    }
+    if (logSt.phase === 'idle') {
+      if (logSt.pending >= 0) {
+        logSt.i = logSt.pending;
+        logSt.pending = -1;
+        logSt.phase = 'fetch';
+      }
+      return;
+    }
+    const lp = logPallets[logSt.i];
+    switch (logSt.phase) {
+      case 'fetch':
+        if (moveZ(lp.home.z, lp.home.y + 0.35, dt)) {
+          logSt.phase = 'pull';
+          logSt.t = 0;
+        }
+        break;
+      case 'pull': {
+        logSt.t += dt;
+        const k = Math.min(1, logSt.t / 0.7);
+        lp.mesh.position.x = lp.home.x + (AISLE_X - lp.home.x) * k;
+        if (k >= 1) {
+          lp.carried = true;
+          logSt.phase = 'carry';
+        }
+        break;
+      }
+      case 'carry':
+        if (moveZ(STAGE.z, STAGE.y, dt)) {
+          logSt.phase = 'show';
+          logSt.showT = 0;
+          spotCone.visible = spotPool.visible = true;
+          pickEntry(logSt.i);
+        }
+        break;
+      case 'show':
+        logSt.showT += dt;
+        spotCone.material.opacity = 0.1 + Math.sin(clock * 2.4) * 0.03;
+        if (logSt.showT >= SHOW_TIME) logSt.phase = 'store';
+        break;
+      case 'store':
+        spotCone.visible = spotPool.visible = false;
+        clearPick();
+        if (moveZ(lp.home.z, lp.home.y + 0.35, dt)) {
+          logSt.phase = 'push';
+          logSt.t = 0;
+        }
+        break;
+      case 'push': {
+        logSt.t += dt;
+        const k = Math.min(1, logSt.t / 0.7);
+        lp.mesh.position.x = AISLE_X + (lp.home.x - AISLE_X) * k;
+        if (k >= 1) {
+          lp.carried = false;
+          lp.mesh.position.set(lp.home.x, lp.home.y, lp.home.z);
+          logSt.phase = 'park';
+        }
+        break;
+      }
+      case 'park':
+        if (moveZ(SHUTTLE_HOME.z, SHUTTLE_HOME.y, dt)) {
+          logSt.phase = 'idle';
+          logSt.i = -1;
+        }
+        break;
+    }
+    /* the pallet rides on the shuttle */
+    if (lp.carried) {
+      lp.mesh.position.set(AISLE_X, shuttle.position.y + 0.32, shuttle.position.z);
+      lp.mesh.rotation.y = 0;
+    }
+  }
+
+  /* DOM twin wiring: click on a hash button = same request; hover/focus
+     on an entry = pallet glows in the hall */
+  document.addEventListener('click', (e) => {
+    const btn = (e.target as HTMLElement | null)?.closest?.('[data-log-req]');
+    if (btn) requestLog(Number((btn as HTMLElement).dataset.logReq));
+  });
+  const hoverIn = (e: Event) => {
+    const el = (e.target as HTMLElement | null)?.closest?.('[data-log-entry]');
+    logSt.glow = el ? Number((el as HTMLElement).dataset.logEntry) : -1;
+  };
+  const hoverOut = () => {
+    logSt.glow = -1;
+  };
+  logPanel?.addEventListener('mouseover', hoverIn);
+  logPanel?.addEventListener('mouseout', hoverOut);
+  logPanel?.addEventListener('focusin', hoverIn);
+  logPanel?.addEventListener('focusout', hoverOut);
+
   /* ========================== public ================================ */
 
   return {
@@ -282,11 +596,19 @@ export function createInteract(ctx: InteractCtx): Interact {
       return obj !== null && handlers.has(obj);
     },
     update(dt) {
+      clock += dt;
       updateDock(dt);
+      updateLog(dt);
     },
     requestDock,
     dockPalletPos(i) {
       return { x: dockXs[i], y: 0.8, z: DOCK_Z };
+    },
+    requestLog,
+    logPalletPos(i) {
+      const lp = logPallets[i];
+      const y = lp ? lp.mesh.position.y + 0.4 : 0;
+      return lp ? { x: lp.mesh.position.x, y, z: lp.mesh.position.z } : { x: 0, y: 0, z: 0 };
     },
   };
 }

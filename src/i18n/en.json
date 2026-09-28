@@ -212,6 +212,7 @@
     "kicker": "// build log",
     "heading": "History as a commit log.",
     "sub": "Every entry a release. Every line in production.",
+    "request": "Fetch station {hash} in the hall",
     "entries": [
       {
         "hash": "a1b2c3d",

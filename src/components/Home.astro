@@ -62,6 +62,12 @@ interface Dict {
 
 const { t } = Astro.props as { t: Dict };
 
+/* T-104: LOG pallets in the hall — hash + last 4-digit year (neutral) */
+const logData = (t.log.entries as Array<{ hash: string; date: string }>).map((e) => ({
+  hash: e.hash,
+  year: (e.date.match(/\d{4}/g) ?? []).pop() ?? '',
+}));
+
 const navItems = [
   { id: 'proof', label: t.nav.proof },
   { id: 'log', label: t.nav.log },
@@ -82,7 +88,7 @@ const navItems = [
   <Hero {...t.hero} email={t.contact.email} linkedin={t.contact.linkedin} cvHref={t.contact.cvHref} />
   <Proof {...t.proof} />
   <Ticker items={t.ticker.items} />
-  <BuildLog {...t.log} />
+  <BuildLog {...t.log} requestAria={t.log.request} />
   <Work {...t.work} />
   <Stack {...t.stack} />
   <Beyond {...t.beyond} />
@@ -93,4 +99,5 @@ const navItems = [
   langLabel={t.nav.langLabel}
   langHref={t.nav.langHref}
   stackData={{ tools: t.stack.tools, methods: t.stack.methods }}
+  logData={logData}
 />

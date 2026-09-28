@@ -723,3 +723,11 @@
   stroke-width: 0.5;
   pointer-events: none;
 }
+
+/* ---- T-104: flightdeck-only DOM twins (hidden classic, shown here) -- */
+.flightdeck [data-fd-only] {
+  display: revert;
+}
+.flightdeck [data-fd-hide] {
+  display: none;
+}
