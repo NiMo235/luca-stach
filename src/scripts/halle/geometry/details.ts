@@ -234,12 +234,7 @@ export function buildDetails(scene: THREE.Scene): { parts: number; pulse: PulseT
     for (let s = 0; s < 12; s++) {
       g.box(1.4, 0.13, 1.0, MEZZ.x0 - 0.7 - s * 0.58, MEZZ.y - 0.45 - s * 0.5, MEZZ.z0 + 3);
     }
-    /* placeholder skill shelves on the deck, along the east wall */
-    for (let k = 0; k < 3; k++) {
-      const sx = MEZZ.x1 - 2.2;
-      const sz = MEZZ.z0 + 4 + k * 8;
-      g.box(0.9, 2.6, 3.2, sx, MEZZ.y + 1.3, sz);
-    }
+    /* skill shelves are built by zones.ts (T-103) with bins + fills */
     add(g.mesh(deckMat, true, true));
 
     /* acid strip under the deck — only the north run; the west-edge
@@ -267,34 +262,45 @@ export function buildDetails(scene: THREE.Scene): { parts: number; pulse: PulseT
     ]) {
       g.box(0.28, fy, 0.28, px, fy / 2, pz);
     }
-    /* console desks inside */
-    g.box(3.6, 0.12, 0.9, cx - 2, fy + 0.78, cz + 1.5);
-    g.box(0.12, 0.78, 0.9, cx - 3.6, fy + 0.39, cz + 1.5);
-    g.box(0.12, 0.78, 0.9, cx - 0.4, fy + 0.39, cz + 1.5);
-    g.box(3.6, 0.12, 0.9, cx + 2.4, fy + 0.78, cz - 1.8);
-    g.box(0.12, 0.78, 0.9, cx + 0.8, fy + 0.39, cz - 1.8);
-    g.box(0.12, 0.78, 0.9, cx + 4.0, fy + 0.39, cz - 1.8);
+    /* two operator desks in a half-round facing the big holo screen
+       (east wall); screens face west so the PROOF camera reads the
+       glowing fronts through the glass */
+    const desks: Array<{ cx: number; cz: number; ry: number; mons: number }> = [
+      { cx: cx - 0.8, cz: cz - 1.9, ry: 0.42, mons: 3 },
+      { cx: cx - 0.8, cz: cz + 1.9, ry: -0.42, mons: 4 },
+    ];
+    for (const d of desks) {
+      g.box(2.9, 0.1, 0.85, d.cx, fy + 0.78, d.cz, d.ry); // top
+      for (const s of [-1.15, 1.15]) {
+        const lx = d.cx + Math.cos(d.ry) * s;
+        const lz = d.cz - Math.sin(d.ry) * s;
+        g.box(0.1, 0.78, 0.7, lx, fy + 0.39, lz, d.ry); // leg panel
+      }
+      /* modesty shelf under the top */
+      g.box(2.4, 0.06, 0.5, d.cx, fy + 0.42, d.cz, d.ry);
+    }
     add(g.mesh(darkSteel, true, true));
 
-    /* operator monitors: 4 screens in a loose arc on the desks,
-       facing the hall (screens visible from the PROOF viewpoint) */
+    /* operator monitors: 7 screens across the two desks (canvas texture
+       with charts/queues, language-neutral), riding the Leitstand power
+       group */
     const monTex = monitorTexture();
     const monMat = new THREE.MeshBasicMaterial({ map: monTex });
     monMat.color.setScalar(1.25); // lift past ACES compression a touch
     power.monMat = monMat;
     const monScreens = new GeoBatch();
     const monStands = new GeoBatch();
-    const monSpots: Array<[number, number, number]> = [
-      [44.1, cz + 1.3, -Math.PI / 2 + 0.32],
-      [45.9, cz + 1.3, -Math.PI / 2 - 0.22],
-      [48.5, cz - 2.0, -Math.PI / 2 + 0.25],
-      [50.3, cz - 2.0, -Math.PI / 2 - 0.3],
-    ];
-    for (const [mx, mz, mry] of monSpots) {
-      const pg = new THREE.PlaneGeometry(0.95, 0.6);
-      monScreens.add(pg, mx, fy + 1.32, mz, mry);
-      monStands.box(0.07, 0.3, 0.07, mx, fy + 0.95, mz);
-      monStands.box(0.34, 0.03, 0.22, mx, fy + 0.82, mz);
+    for (const d of desks) {
+      for (let k = 0; k < d.mons; k++) {
+        const off = (k - (d.mons - 1) / 2) * 0.78;
+        const mx = d.cx + Math.cos(d.ry) * off;
+        const mz = d.cz - Math.sin(d.ry) * off;
+        const mry = -Math.PI / 2 + d.ry;
+        const pg = new THREE.PlaneGeometry(0.72, 0.46);
+        monScreens.add(pg, mx, fy + 1.26, mz, mry);
+        monStands.box(0.06, 0.24, 0.06, mx, fy + 0.94, mz);
+        monStands.box(0.3, 0.03, 0.2, mx, fy + 0.83, mz);
+      }
     }
     add(monScreens.mesh(monMat, false, false));
     add(monStands.mesh(darkSteel, false, false));
@@ -382,12 +388,7 @@ export function buildDetails(scene: THREE.Scene): { parts: number; pulse: PulseT
     const drumMat = new THREE.MeshStandardMaterial({ color: 0x39577e, metalness: 0.35, roughness: 0.5 });
     add(stock.mesh(drumMat, true, true));
 
-    /* ADR diamond plates on the fence */
-    const adrMat = new THREE.MeshBasicMaterial({ color: 0xd97a1e });
-    const adr = new GeoBatch();
-    adr.box(0.34, 0.34, 0.03, cx - 3, 2.6, CAGE.z1 + 0.03);
-    adr.box(0.34, 0.34, 0.03, cx + 3, 2.6, CAGE.z1 + 0.03);
-    add(adr.mesh(adrMat, false, false));
+    /* legible ADR/GHS diamonds + trays + shower: zones.ts (T-103) */
 
     /* beacon pole — the material/light blink in the update loop */
     const pole = new GeoBatch();
@@ -422,14 +423,12 @@ export function buildDetails(scene: THREE.Scene): { parts: number; pulse: PulseT
     warm.box(w - 1, 0.05, 0.05, cx, 2.95, LOUNGE.z1 - 0.22);
     add(warm.mesh(amberMat, false, false));
 
-    /* sofa, table, DJ desk placeholder */
+    /* sofa, table (DJ pult + gym move to zones.ts, T-103) */
     const furn = new GeoBatch();
     furn.box(3.2, 0.45, 1.1, cx - 4, 0.42, cz + 1.8); // sofa seat
     furn.box(3.2, 0.65, 0.3, cx - 4, 0.75, cz + 2.3); // backrest
     furn.box(1.1, 0.45, 2.2, cx - 5.8, 0.42, cz + 0.2); // side seat
     furn.box(1.4, 0.4, 0.8, cx - 3.4, 0.2, cz - 0.4); // table
-    furn.box(2.4, 0.95, 0.8, cx + 5, 0.48, LOUNGE.z1 - 1.2); // DJ desk
-    furn.box(0.9, 1.4, 0.5, LOUNGE.x1 - 1.2, 0.7, cz + 2.2); // gym rack hint
     /* record shelf on the south wall + low bench near the east wall */
     furn.box(4.2, 1.5, 0.35, -51, 0.95, 28.5);
     furn.box(4.0, 0.04, 0.28, -51, 0.7, 28.48);
@@ -452,11 +451,8 @@ export function buildDetails(scene: THREE.Scene): { parts: number; pulse: PulseT
     lampDot.position.set(-55.5, 1.58, 27.8);
     add(lampDot);
 
-    /* glowing platter discs on the DJ desk */
-    const platters = new GeoBatch();
-    platters.cyl(0.28, 0.28, 0.04, 16, cx + 4.4, 0.98, LOUNGE.z1 - 1.2);
-    platters.cyl(0.28, 0.28, 0.04, 16, cx + 5.6, 0.98, LOUNGE.z1 - 1.2);
-    add(platters.mesh(amberMat, false, false));
+    /* glowing platter discs on the DJ desk are part of the 4-deck
+       pult in zones.ts (T-103) */
   }
 
   /* ================= light strips — always mounted ON structure =====

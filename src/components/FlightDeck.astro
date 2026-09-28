@@ -31,9 +31,13 @@ interface Props {
   };
   langLabel: string;
   langHref: string;
+  stackData: {
+    tools: Array<{ name: string; level: number }>;
+    methods: Array<{ name: string; level: number }>;
+  };
 }
 
-const { hud, langLabel, langHref } = Astro.props;
+const { hud, langLabel, langHref, stackData } = Astro.props;
 const langUrl = `${import.meta.env.BASE_URL}${langHref.replace(/^\//, '')}`;
 
 /* T-103 minimap geometry — mirrors src/scripts/halle/layout.ts
@@ -63,7 +67,7 @@ const mapZones = [
 const stationLabel = (i: number) => hud.stations[i]?.label ?? '';
 ---
 
-<canvas id="flight-canvas" aria-hidden="true"></canvas>
+<canvas id="flight-canvas" aria-hidden="true" data-stack={JSON.stringify(stackData)}></canvas>
 <div id="flight-flash" aria-hidden="true"></div>
 
 <div id="flight-hud">

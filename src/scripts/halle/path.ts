@@ -31,7 +31,7 @@ export const LOOK_KEYS: Array<[number, number, number]> = [
   [-20, 3, 4],
   [-8, 1.2, -10], // 04 down at the crossing + racks behind
   [40, 6.5, 10],
-  [-20, 4, -2], // 05 from the mezzanine across the hall
+  [52.5, 7.0, 13.5], // 05 the skill shelves on the mezzanine (T-103: the bins ARE the motif)
   [-30, 2.5, 18], //    pan down toward the lounge
   [-52, 1.5, 27.2], // 06 deep into the warm lounge corner
   [-40, 3, -18],

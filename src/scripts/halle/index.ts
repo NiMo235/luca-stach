@@ -21,6 +21,9 @@ import { createSimRender } from './sim/render';
 import { AGV_COUNT, AGV_WAIT } from './sim/agents';
 import { createHotspots } from './hotspots';
 import { createMinimap } from './minimap';
+import { buildZones, type StackData } from './geometry/zones';
+import { createPackSim } from './sim/packages';
+import { createPackRender } from './sim/packrender';
 import { COL } from './layout';
 
 export type { FlightWorld } from './types';
@@ -72,6 +75,21 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
     sim.setRate(0);
     const simR = createSimRender(scene, sim);
 
+    /* T-103: zone fit-out (data lanes, conveyor + Prüfstraße, cage
+       signage, skill bins, lounge gear, dock seals, gallery stelae).
+       Method/tool names arrive via the canvas data attribute (i18n). */
+    let stackData: StackData | null = null;
+    try {
+      stackData = JSON.parse(canvas.dataset.stack ?? 'null') as StackData | null;
+    } catch {
+      stackData = null;
+    }
+    const zones = buildZones(scene, stackData);
+
+    /* T-103: package sim — conveyor parcels + quote-lane packets */
+    const packSim = createPackSim(4711);
+    const packR = createPackRender(scene, packSim);
+
     /* holo hotspot markers above the zone labels (tap = fly) —
        created before the stats count so the title card stays exact */
     const hotspots = createHotspots(scene, pulse.labelSprites);
@@ -113,6 +131,8 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
     addMat(sp.yardHeadMat, 0);
     addMat(dp.monMat, 3);
     addMat(dp.screenMat, 3);
+    /* T-103 zone emissives ride their power group too */
+    for (const pm of zones.powerMats) addMat(pm.mat, pm.group);
     const CONE_OPACITY = 0.16;
     const POOL_OPACITY = 0.5;
 
@@ -318,9 +338,15 @@ export function createWorld(canvas: HTMLCanvasElement): FlightWorld {
 
         /* simulation: rate ramps up with the power; the fixed-step world
            pauses implicitly because update() is not called while hidden */
-        sim.setRate(power.done ? 1 : Math.max(0, (power.progress - 0.12) / 0.8));
+        const simRate = power.done ? 1 : Math.max(0, (power.progress - 0.12) / 0.8);
+        sim.setRate(simRate);
         sim.advance(dt);
         simR.update(sim.alpha());
+        packSim.advance(dt * simRate);
+        packR.update();
+
+        /* scanner light curtain shimmer */
+        zones.scanMat.opacity = (0.09 + 0.1 * (0.5 + 0.5 * Math.sin(t * 5.2))) * minLevel(L[2]);
 
         tour.apply(camera, p, transit, dt, now);
 
