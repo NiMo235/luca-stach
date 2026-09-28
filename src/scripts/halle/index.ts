@@ -24,6 +24,7 @@ import { createMinimap } from './minimap';
 import { buildZones, type StackData } from './geometry/zones';
 import { createPackSim } from './sim/packages';
 import { createPackRender } from './sim/packrender';
+import { createInteract } from './interact';
 import { COL } from './layout';
 
 export type { FlightWorld } from './types';
